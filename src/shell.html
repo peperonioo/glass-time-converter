@@ -535,6 +535,7 @@
     }
 
     .city-card {
+      position: relative;
       min-height: var(--row);
       padding: 10px 12px;
       border-right: 1px solid var(--line);
@@ -608,26 +609,47 @@
       margin-left: auto;
     }
 
-    .zone-name {
-      margin-top: 4px;
-      color: var(--soft);
-      font-size: 12px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
     .current-time {
       margin-top: 5px;
       color: rgba(255,255,255,.82);
-      font-size: 12px;
+      font-size: 13px;
       letter-spacing: -.01em;
     }
 
+    /* IANA zone — kept for reference but visually quietest line. */
+    .zone-name {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 10.5px;
+      letter-spacing: .005em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      opacity: .85;
+    }
+
+    /* Actions overlay on the right and reveal on hover, so the city name keeps
+       the full row width and stays prominent. */
     .city-actions {
+      position: absolute;
+      right: 10px;
+      top: 50%;
       display: flex;
       gap: 5px;
-      flex: 0 0 auto;
+      padding: 4px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, rgba(10,12,22,.78) 26%);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-50%) translateX(6px);
+      transition: opacity .18s var(--ease), transform .18s var(--ease);
+    }
+
+    .city-card:hover .city-actions,
+    .city-card:focus-within .city-actions {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-50%);
     }
 
     .mini-btn {
@@ -758,21 +780,28 @@
       background: rgba(217,184,255,.045);
     }
 
-    .cell.day-shift::after {
-      content: attr(data-shift-label);
+    /* Day boundary: a single subtle divider + one date chip per day segment,
+       instead of a "Día ±1" badge on every shifted cell. */
+    .cell.day-start,
+    .hour-head.day-start:not(:first-child) {
+      border-left: 1px solid rgba(255,255,255,.22);
+    }
+
+    .cell.day-mark::after {
+      content: attr(data-day-label);
       position: absolute;
       z-index: 3;
       top: 5px;
-      right: 5px;
-      padding: 2px 5px;
+      left: 5px;
+      padding: 2px 6px;
       border-radius: 999px;
-      background: rgba(0,0,0,.24);
-      border: 1px solid rgba(255,255,255,.13);
-      color: rgba(255,255,255,.58);
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.55);
       font-size: 8px;
-      font-weight: 820;
-      letter-spacing: .035em;
-      text-transform: uppercase;
+      font-weight: 760;
+      letter-spacing: .02em;
+      white-space: nowrap;
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
@@ -1181,7 +1210,7 @@
         <button class="glass-btn" id="nextBtn">Día →</button>
       </div>
 
-      <div class="hint">Toca una ciudad para cambiar su timezone · toca o arrastra una hora para convertir.</div>
+      <div class="hint">Arrastra para crear un rango · toca una ciudad para cambiarla.</div>
 
       <div class="right-tools">
         <button class="glass-btn" id="addBtn">+ Ciudad</button>

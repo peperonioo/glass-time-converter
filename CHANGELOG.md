@@ -2,6 +2,35 @@
 
 All notable changes to Glass Time.
 
+## [0.7.2] — 2026-06-25
+
+Visual de-cluttering + installable PWA.
+
+### Changed — less text, same information
+
+- **Header dates no longer repeat on all 24 cells.** The date label is shown only
+  where a day begins.
+- **City rows: the "Día ±1" badge on every shifted cell is gone.** Each local day
+  is now marked once with a subtle midnight **divider** + a single date chip
+  (`weekday dd/mm · ±1`). No information is lost — it's just shown once per day
+  segment instead of per cell.
+- **IANA timezone** (e.g. `America/New_York`) demoted to the quietest line
+  (smaller, dimmer); city name + current local time are now the prominent info.
+- City **actions reveal on hover** (overlay) so the city name keeps the full row
+  width and stays prominent (fixes truncation like "S.." / "Ne..").
+- Shorter toolbar hint and a cleaner "Ahora · <time>" line.
+
+### Added — PWA (installable, offline)
+
+- `manifest.webmanifest`, a service worker (offline app-shell cache), and
+  generated icons (192 / 512 / maskable). The app is installable and works
+  offline.
+- `node src/build.js` now also emits a Pages-ready **`/docs`** site
+  (`index.html` with manifest + SW tags, assets, `.nojekyll`). All PWA paths are
+  relative so it works under the GitHub Pages project subpath.
+- `dist/glass-time.html` stays a clean, dependency-free single file (no SW
+  references) for offline use straight from disk.
+
 ## [0.7.1] — 2026-06-25
 
 Premium selection feel + elegant motion. Builds on the 0.7.0 stabilisation

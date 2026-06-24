@@ -1,0 +1,20 @@
+{
+  "name": "Glass Time — Visual Timezone Converter",
+  "short_name": "Glass Time",
+  "description": "Conversor visual de zonas horarias: timeline de 24h, selección de rangos con precisión de 30 min y export a Google Calendar / .ics.",
+  "lang": "es",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#070812",
+  "theme_color": "#070812",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

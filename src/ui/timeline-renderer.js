@@ -28,16 +28,20 @@ function restoreScroll(left) {
 function renderHeader() {
   const base = baseZone();
   let html = "";
+  let prevISO = null;
 
   for (let h = 0; h < 24; h++) {
     const instant = zonedTimeToUtc(state.dateISO, h, 0, base.timeZone);
     const p = getParts(instant, base.timeZone);
+    const iso = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+    const dayStart = h === 0 || iso !== prevISO; // only label the date when the day begins
+    prevISO = iso;
 
     html += `
-      <div class="hour-head ${h === slotHour(state.cursorSlot) ? "cursor" : ""}" data-hour="${h}">
+      <div class="hour-head ${h === slotHour(state.cursorSlot) ? "cursor" : ""} ${dayStart ? "day-start" : ""}" data-hour="${h}">
         <span class="cursor-band" aria-hidden="true"></span>
         <div class="h">${compactHourHTML(p.hour)}</div>
-        <div class="d">${fmtDate(p)}</div>
+        ${dayStart ? `<div class="d">${fmtDate(p)}</div>` : ""}
       </div>
     `;
   }
@@ -64,12 +68,19 @@ function renderRows() {
     const offset = offsetText(now, zone.timeZone);
     const color = COLORS[index % COLORS.length];
 
+    let prevISO = null;
     const cells = Array.from({ length: 24 }, (_, h) => {
       const instant = zonedTimeToUtc(state.dateISO, h, 0, base.timeZone);
       const p = getParts(instant, zone.timeZone);
       const localISO = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
       const dayShift = localISO < state.dateISO ? "-1" : localISO > state.dateISO ? "+1" : "";
-      const dayShiftLabel = dayShift === "+1" ? "Día +1" : dayShift === "-1" ? "Día -1" : "";
+      // Mark only the first cell of each local day; the date label + a divider
+      // there replace the per-cell "Día ±1" badges.
+      const dayStart = h === 0 || localISO !== prevISO;
+      prevISO = localISO;
+      const dayLabel = dayStart
+        ? `${fmtDate(p)}${dayShift ? ` · ${dayShift}` : ""}`
+        : "";
       const selected = cellSelected(h, range);
       const night = p.hour < 6 || p.hour >= 22;
       const morning = p.hour >= 6 && p.hour < 10;
@@ -79,10 +90,9 @@ function renderRows() {
       const cursor = h === slotHour(state.cursorSlot);
 
       return `
-        <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${dayShift ? "day-shift" : ""} ${nowClass}"
+        <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${dayStart && h !== 0 ? "day-start" : ""} ${dayStart ? "day-mark" : ""} ${nowClass}"
           data-hour="${h}"
-          data-shift="${dayShift}"
-          data-shift-label="${dayShiftLabel}"
+          data-day-label="${escapeHTML(dayLabel)}"
           title="${escapeHTML(zone.label)}: ${fmtDate(p)} ${fmtDisplayTime(p.hour)}">
           <span class="cursor-band" aria-hidden="true"></span>
           <span class="t">${compactHourHTML(p.hour)}</span>
@@ -100,8 +110,8 @@ function renderRows() {
               ${index === 0 ? `<span class="base-tag">Base</span>` : ""}
               <div class="offset">${offset}</div>
             </div>
+            <div class="current-time">Ahora · ${fmtDisplayTime(current.hour, current.minute)}</div>
             <div class="zone-name">${escapeHTML(zone.timeZone)}</div>
-            <div class="current-time">Ahora · ${fmtDate(current)} · ${fmtDisplayTime(current.hour, current.minute)}</div>
           </div>
           <div class="city-actions">
             ${index > 0 ? `<button class="mini-btn make-base" title="Hacer base">⌖</button>` : ""}
