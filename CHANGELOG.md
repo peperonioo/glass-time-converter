@@ -2,6 +2,20 @@
 
 All notable changes to Glass Time.
 
+## [0.7.3] — 2026-06-25
+
+### Changed — scroll-following day labels
+
+- The date is now a **pinned label that follows the horizontal scroll** on the
+  header and on every city row. It stays at the left edge across all the hours of
+  a day and **flips to the new date exactly when you scroll past that timezone's
+  midnight** (e.g. New York stays "Wed 24/06 · -1" while the others already read
+  "Thu 25/06"). A small flash animates the change.
+- This replaces the fixed-position date that scrolled out of view in 0.7.2 (the
+  authoritative full base date in the left panel is still there).
+- Header hour numbers are now vertically centered so the pinned label sits in a
+  clean top gutter without covering them. Midnight dividers remain.
+
 ## [0.7.2] — 2026-06-25
 
 Visual de-cluttering + installable PWA.

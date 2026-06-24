@@ -22,6 +22,31 @@ function render() {
   save();
   bindScrollSync();
   restoreScroll(keepScroll);
+  updateDayPins();
+}
+
+/* Keep each scroller's day label pinned to the left edge and showing the date of
+   the leftmost visible hour — so it follows the lateral scroll and flips exactly
+   when you cross a midnight boundary. */
+function updateDayPins() {
+  const cw = cellWidthPx();
+  const scrollers = [els.headScroll, ...document.querySelectorAll(".body-scroll")];
+  scrollers.forEach(sc => {
+    const hoursEl = sc.querySelector(".hours");
+    const pin = hoursEl && hoursEl.querySelector(":scope > .day-pin");
+    if (!pin) return;
+    const left = sc.scrollLeft;
+    const h = Math.max(0, Math.min(23, Math.floor(left / cw + 0.001)));
+    const ref = hoursEl.querySelector(`[data-hour="${h}"]`);
+    const label = ref ? ref.getAttribute("data-date") || "" : "";
+    if (pin.textContent !== label) {
+      pin.textContent = label;
+      pin.classList.remove("flip");
+      void pin.offsetWidth; // restart the flash animation
+      pin.classList.add("flip");
+    }
+    pin.style.transform = `translateX(${left}px)`;
+  });
 }
 
 function restoreScroll(left) {
@@ -40,18 +65,19 @@ function renderHeader() {
     const instant = zonedTimeToUtc(state.dateISO, h, 0, base.timeZone);
     const p = getParts(instant, base.timeZone);
     const iso = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
-    const dayStart = h === 0 || iso !== prevISO; // only label the date when the day begins
+    const dayStart = h !== 0 && iso !== prevISO; // midnight divider (not at the very edge)
     prevISO = iso;
 
     html += `
-      <div class="hour-head ${h === slotHour(state.cursorSlot) ? "cursor" : ""} ${dayStart ? "day-start" : ""}" data-hour="${h}">
+      <div class="hour-head ${h === slotHour(state.cursorSlot) ? "cursor" : ""} ${dayStart ? "day-start" : ""}" data-hour="${h}" data-date="${escapeHTML(fmtDate(p))}">
         <span class="cursor-band" aria-hidden="true"></span>
         <div class="h">${compactHourHTML(p.hour)}</div>
-        ${dayStart ? `<div class="d">${fmtDate(p)}</div>` : ""}
       </div>
     `;
   }
 
+  // Scroll-following day label (sticky to the left edge, updates at day changes).
+  html += `<div class="day-pin head-pin" aria-hidden="true"></div>`;
   els.hourHeader.innerHTML = html;
 }
 
@@ -80,13 +106,11 @@ function renderRows() {
       const p = getParts(instant, zone.timeZone);
       const localISO = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
       const dayShift = localISO < state.dateISO ? "-1" : localISO > state.dateISO ? "+1" : "";
-      // Mark only the first cell of each local day; the date label + a divider
-      // there replace the per-cell "Día ±1" badges.
-      const dayStart = h === 0 || localISO !== prevISO;
+      // Midnight divider where the local day changes; the scroll-following pin
+      // shows the date persistently and updates at this boundary.
+      const dayStart = h !== 0 && localISO !== prevISO;
       prevISO = localISO;
-      const dayLabel = dayStart
-        ? `${fmtDate(p)}${dayShift ? ` · ${dayShift}` : ""}`
-        : "";
+      const dateLabel = `${fmtDate(p)}${dayShift ? ` · ${dayShift}` : ""}`;
       const selected = cellSelected(h, range);
       const night = p.hour < 6 || p.hour >= 22;
       const morning = p.hour >= 6 && p.hour < 10;
@@ -96,9 +120,9 @@ function renderRows() {
       const cursor = h === slotHour(state.cursorSlot);
 
       return `
-        <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${dayStart && h !== 0 ? "day-start" : ""} ${dayStart ? "day-mark" : ""} ${nowClass}"
+        <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${dayStart ? "day-start" : ""} ${nowClass}"
           data-hour="${h}"
-          data-day-label="${escapeHTML(dayLabel)}"
+          data-date="${escapeHTML(dateLabel)}"
           title="${escapeHTML(zone.label)}: ${fmtDate(p)} ${fmtDisplayTime(p.hour)}">
           <span class="cursor-band" aria-hidden="true"></span>
           <span class="t">${compactHourHTML(p.hour)}</span>
@@ -128,6 +152,7 @@ function renderRows() {
           <div class="hours" style="--sel-start:${range.start}; --sel-len:${range.durationSlots};">
             ${cells}
             <div class="sel-band" aria-hidden="true"></div>
+            <div class="day-pin" aria-hidden="true"></div>
           </div>
         </div>
       </div>
@@ -178,6 +203,7 @@ function bindScrollSync() {
       scrollers.forEach(other => {
         if (other !== scroller) other.scrollLeft = left;
       });
+      updateDayPins();
       requestAnimationFrame(() => { syncing = false; });
     };
   });
