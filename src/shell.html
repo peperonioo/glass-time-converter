@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Glass Time — Visual Timezone Converter</title>
+  <style>
+    :root {
+      --bg: #070812;
+      --bg2: #10152a;
+      --text: rgba(255,255,255,.94);
+      --soft: rgba(255,255,255,.66);
+      --muted: rgba(255,255,255,.42);
+      --line: rgba(255,255,255,.12);
+      --glass: rgba(255,255,255,.09);
+      --glass2: rgba(255,255,255,.14);
+      --ink: rgba(5,8,18,.72);
+      --blue: #9fd7ff;
+      --violet: #d9b8ff;
+      --mint: #bdf7d2;
+      --peach: #ffd2b7;
+      --pink: #ffb5df;
+      --cell: 64px;
+      --city: 250px;
+      --row: 72px;
+      --radius-xl: 34px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --ease: cubic-bezier(.2,.8,.2,1);
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(circle at 14% 10%, rgba(115, 198, 255, .32), transparent 31%),
+        radial-gradient(circle at 82% 7%, rgba(217, 184, 255, .30), transparent 27%),
+        radial-gradient(circle at 76% 88%, rgba(255, 181, 223, .16), transparent 34%),
+        linear-gradient(145deg, var(--bg), var(--bg2) 58%, #171b35);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.08), transparent 22%, transparent 70%, rgba(255,255,255,.04)),
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,.10), transparent 42%);
+      mix-blend-mode: overlay;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      width: min(1420px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 18px 0 34px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .nav {
+      position: sticky;
+      top: 12px;
+      z-index: 30;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 32% 25%, rgba(255,255,255,.95), transparent 18%),
+        linear-gradient(135deg, var(--blue), var(--violet) 48%, var(--pink));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.62),
+        0 20px 70px rgba(159,215,255,.22);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(22px, 2.6vw, 34px);
+      letter-spacing: -.055em;
+      line-height: .95;
+    }
+
+    .brand p {
+      margin: 6px 0 0;
+      color: var(--soft);
+      font-size: 13px;
+    }
+
+    .island {
+      width: min(610px, 52vw);
+      min-height: 58px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06)),
+        rgba(3, 5, 12, .72);
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.24),
+        0 20px 70px rgba(0,0,0,.38);
+      backdrop-filter: blur(30px) saturate(170%);
+      -webkit-backdrop-filter: blur(30px) saturate(170%);
+    }
+
+    .island small {
+      display: block;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      font-size: 10px;
+      margin-bottom: 3px;
+    }
+
+    .island strong {
+      display: block;
+      font-size: clamp(18px, 2.4vw, 28px);
+      line-height: 1.05;
+      letter-spacing: -.055em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .island .chip {
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.11);
+      color: rgba(255,255,255,.78);
+      font-size: 12px;
+      flex: 0 0 auto;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 48%;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .glass-btn {
+      padding: 11px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.16);
+      backdrop-filter: blur(20px);
+      color: rgba(255,255,255,.86);
+      transition: transform .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease);
+    }
+
+    .glass-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.16);
+      border-color: rgba(255,255,255,.24);
+    }
+
+    .calendar-menu {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .calendar-plus {
+      padding-left: 13px;
+      padding-right: 15px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.17), rgba(255,255,255,.075)),
+        rgba(3,5,12,.55);
+      border-color: rgba(255,255,255,.18);
+    }
+
+    .calendar-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
+      width: min(330px, calc(100vw - 32px));
+      padding: 8px;
+      border-radius: 26px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.07)),
+        rgba(5, 7, 15, .86);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.22),
+        0 26px 80px rgba(0,0,0,.46);
+      backdrop-filter: blur(30px) saturate(170%);
+      -webkit-backdrop-filter: blur(30px) saturate(170%);
+      opacity: 0;
+      transform: translateY(-6px) scale(.98);
+      pointer-events: none;
+      transition: opacity .18s var(--ease), transform .18s var(--ease);
+      z-index: 70;
+    }
+
+    .calendar-title-field {
+      padding: 8px 8px 6px;
+    }
+
+    .calendar-title-field label {
+      display: block;
+      margin: 0 0 7px 4px;
+      color: var(--soft);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .11em;
+    }
+
+    .calendar-title-field input {
+      width: 100%;
+      padding: 12px 13px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.14);
+      outline: none;
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .calendar-menu.open .calendar-popover {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .calendar-choice {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 10px;
+      align-items: center;
+      text-align: left;
+      padding: 11px;
+      border-radius: 20px;
+      background: transparent;
+      color: var(--text);
+      transition: background .16s var(--ease), transform .16s var(--ease);
+    }
+
+    .calendar-choice:hover {
+      background: rgba(255,255,255,.11);
+      transform: translateY(-1px);
+    }
+
+    .choice-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(135deg, rgba(159,215,255,.32), rgba(217,184,255,.25)),
+        rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.14);
+      font-weight: 800;
+    }
+
+    .calendar-choice strong {
+      display: block;
+      font-size: 14px;
+      letter-spacing: -.02em;
+    }
+
+    .calendar-choice em {
+      display: block;
+      margin-top: 3px;
+      font-style: normal;
+      color: var(--soft);
+      font-size: 12px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+      padding: 12px;
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.055)),
+        rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 22px 65px rgba(0,0,0,.18);
+      backdrop-filter: blur(28px) saturate(160%);
+      -webkit-backdrop-filter: blur(28px) saturate(160%);
+    }
+
+    .date-wrap {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .date-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(3,5,12,.34);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+
+    .date-pill span {
+      color: var(--soft);
+      font-size: 13px;
+    }
+
+    input[type="date"] {
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      color-scheme: dark;
+      min-width: 132px;
+    }
+
+    .hint {
+      color: var(--soft);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .right-tools {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .board {
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.045)),
+        rgba(255,255,255,.055);
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 24px 80px rgba(0,0,0,.24);
+      backdrop-filter: blur(30px) saturate(160%);
+      -webkit-backdrop-filter: blur(30px) saturate(160%);
+    }
+
+    .header-row,
+    .time-row {
+      display: grid;
+      grid-template-columns: var(--city) 1fr;
+    }
+
+    .left-head {
+      min-height: 74px;
+      padding: 16px 18px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.045);
+    }
+
+    .left-head strong {
+      display: block;
+      font-size: 15px;
+      letter-spacing: -.02em;
+    }
+
+    .left-head span {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 8px;
+      padding: 6px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: rgba(255,255,255,.82);
+      background:
+        linear-gradient(180deg, rgba(159,215,255,.18), rgba(217,184,255,.10)),
+        rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.13);
+    }
+
+    .scroll {
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.28) transparent;
+      /* Keep horizontal pan natural on trackpad / touch; never lock vertical page scroll */
+      touch-action: pan-x pan-y;
+      overscroll-behavior-x: contain;
+    }
+
+    .hours {
+      display: grid;
+      grid-template-columns: repeat(24, var(--cell));
+      width: calc(24 * var(--cell));
+    }
+
+    .hour-head {
+      position: relative;
+      min-height: 74px;
+      padding: 13px 5px 9px;
+      border-right: 1px solid rgba(255,255,255,.09);
+      border-bottom: 1px solid var(--line);
+      text-align: center;
+      background: rgba(255,255,255,.032);
+    }
+
+    .hour-head .h {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+    }
+
+    .time-stack {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      line-height: .9;
+      gap: 5px;
+    }
+
+    .time-stack .num {
+      font-size: 24px;
+      font-weight: 820;
+      letter-spacing: -.07em;
+    }
+
+    .time-stack .ampm {
+      font-size: 10px;
+      font-weight: 760;
+      letter-spacing: .10em;
+      color: rgba(255,255,255,.48);
+    }
+
+    .cell.selected .time-stack .ampm {
+      color: rgba(255,255,255,.82);
+    }
+
+    /* Soft full-cell cursor band — sits behind the time number, never blocks text */
+    .cursor-band {
+      position: absolute;
+      z-index: 0;
+      inset: 3px 3px;
+      border-radius: 18px;
+      opacity: 0;
+      transform: scaleX(.9);
+      background:
+        linear-gradient(180deg, rgba(159,215,255,.14), rgba(217,184,255,.09)),
+        rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.30);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.26),
+        inset 0 -1px 0 rgba(255,255,255,.08),
+        0 0 26px rgba(159,215,255,.22);
+      transition: opacity .14s var(--ease), transform .14s var(--ease), border-color .14s var(--ease);
+      pointer-events: none;
+      will-change: opacity, transform;
+    }
+
+    .hour-head.cursor .cursor-band,
+    .cell.cursor .cursor-band {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+
+    .hour-head.cursor,
+    .cell.cursor {
+      background-image: linear-gradient(180deg, rgba(159,215,255,.045), rgba(217,184,255,.035));
+    }
+
+    .cell.cursor .time-stack .ampm,
+    .hour-head.cursor .time-stack .ampm {
+      color: rgba(255,255,255,.86);
+    }
+
+    .hour-head .d {
+      position: relative;
+      z-index: 1;
+      margin-top: 6px;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .time-row {
+      min-height: var(--row);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+
+    .time-row:last-child {
+      border-bottom: 0;
+    }
+
+    .city-card {
+      min-height: var(--row);
+      padding: 10px 12px;
+      border-right: 1px solid var(--line);
+      background: rgba(255,255,255,.028);
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      transition: background .18s var(--ease);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .city-card:hover {
+      background: rgba(255,255,255,.07);
+    }
+
+    .city-card.anchor {
+      background:
+        linear-gradient(90deg, rgba(159,215,255,.13), rgba(217,184,255,.05)),
+        rgba(255,255,255,.035);
+    }
+
+    .city-glow {
+      width: 12px;
+      align-self: stretch;
+      min-height: 44px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--blue), var(--violet));
+      box-shadow: 0 0 24px rgba(159,215,255,.24);
+      flex: 0 0 auto;
+      opacity: .92;
+    }
+
+    .city-main {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .city-line {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .city-name {
+      font-size: 16px;
+      font-weight: 780;
+      letter-spacing: -.025em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .base-tag {
+      flex: 0 0 auto;
+      font-size: 9px;
+      font-weight: 820;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: rgba(8,12,24,.9);
+      background: linear-gradient(180deg, var(--blue), var(--violet));
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+
+    .offset {
+      color: var(--muted);
+      font-size: 11px;
+      flex: 0 0 auto;
+      margin-left: auto;
+    }
+
+    .zone-name {
+      margin-top: 4px;
+      color: var(--soft);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .current-time {
+      margin-top: 5px;
+      color: rgba(255,255,255,.82);
+      font-size: 12px;
+      letter-spacing: -.01em;
+    }
+
+    .city-actions {
+      display: flex;
+      gap: 5px;
+      flex: 0 0 auto;
+    }
+
+    .mini-btn {
+      width: 31px;
+      height: 31px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.66);
+      transition: background .18s var(--ease), color .18s var(--ease), transform .18s var(--ease);
+    }
+
+    .mini-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.14);
+      color: var(--text);
+    }
+
+    .cell {
+      height: var(--row);
+      border-right: 1px solid rgba(255,255,255,.075);
+      display: grid;
+      place-items: center;
+      position: relative;
+      color: rgba(255,255,255,.80);
+      cursor: pointer;
+      user-select: none;
+      transition: background .14s var(--ease), color .14s var(--ease);
+    }
+
+    .cell::before {
+      content: "";
+      position: absolute;
+      inset: 9px 5px;
+      border-radius: 17px;
+      background: transparent;
+      transform: scale(.93);
+      transition: background .16s var(--ease), transform .16s var(--ease), box-shadow .16s var(--ease);
+    }
+
+    .cell:hover::before {
+      background: rgba(255,255,255,.10);
+      transform: scale(1);
+    }
+
+    .cell.selected::before {
+      left: calc(5px + var(--sel-left, 0) * .01 * (100% - 10px));
+      right: auto;
+      width: calc(var(--sel-width, 100) * .01 * (100% - 10px));
+      background:
+        linear-gradient(180deg, rgba(159,215,255,.48), rgba(217,184,255,.35));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.46),
+        0 12px 34px rgba(159,215,255,.18);
+      transform: scale(1);
+    }
+
+    .cell.selected.start-half::before {
+      border-top-left-radius: 17px;
+      border-bottom-left-radius: 17px;
+    }
+
+    .cell.selected.end-half::before {
+      border-top-right-radius: 17px;
+      border-bottom-right-radius: 17px;
+    }
+
+    .cell.selected.cursor .cursor-band {
+      border-color: rgba(255,255,255,.45);
+      background:
+        linear-gradient(180deg, rgba(159,215,255,.16), rgba(217,184,255,.11)),
+        rgba(255,255,255,.05);
+    }
+
+    .cell .t {
+      position: relative;
+      z-index: 1;
+    }
+
+    .cell .time-stack .num {
+      font-size: 21px;
+    }
+
+    .cell .time-stack .ampm {
+      font-size: 9px;
+    }
+
+    .cell.night {
+      color: rgba(255,255,255,.40);
+      background: rgba(4,7,18,.22);
+    }
+
+    .cell.morning {
+      background: rgba(255,210,183,.045);
+    }
+
+    .cell.work {
+      background: rgba(189,247,210,.045);
+    }
+
+    .cell.evening {
+      background: rgba(217,184,255,.045);
+    }
+
+    .cell.day-shift::after {
+      content: attr(data-shift-label);
+      position: absolute;
+      z-index: 3;
+      top: 5px;
+      right: 5px;
+      padding: 2px 5px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.24);
+      border: 1px solid rgba(255,255,255,.13);
+      color: rgba(255,255,255,.58);
+      font-size: 8px;
+      font-weight: 820;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .cell.now {
+      box-shadow: inset 2px 0 0 rgba(255,255,255,.72);
+    }
+
+    .sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(0,0,0,.28);
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s var(--ease);
+    }
+
+    .sheet-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sheet {
+      position: fixed;
+      left: 50%;
+      bottom: max(14px, env(safe-area-inset-bottom));
+      z-index: 90;
+      width: min(760px, calc(100vw - 24px));
+      max-height: min(720px, calc(100vh - 34px));
+      transform: translateX(-50%) translateY(24px) scale(.98);
+      opacity: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      border-radius: 34px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.075)),
+        rgba(8, 10, 20, .82);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.26),
+        0 28px 90px rgba(0,0,0,.48);
+      backdrop-filter: blur(34px) saturate(175%);
+      -webkit-backdrop-filter: blur(34px) saturate(175%);
+      overflow: hidden;
+      transition: transform .24s var(--ease), opacity .24s var(--ease);
+    }
+
+    .sheet.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    .grabber {
+      width: 48px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.25);
+      margin: 10px auto 4px;
+    }
+
+    .sheet-top {
+      padding: 12px 16px 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+
+    .sheet-title h2 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -.045em;
+    }
+
+    .sheet-title p {
+      margin: 5px 0 0;
+      color: var(--soft);
+      font-size: 13px;
+    }
+
+    .search {
+      padding: 0 16px 12px;
+    }
+
+    .search input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.14);
+      outline: none;
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .zone-list {
+      overflow: auto;
+      padding: 0 10px 12px;
+    }
+
+    .zone-option {
+      width: 100%;
+      text-align: left;
+      padding: 13px 12px;
+      margin: 4px 0;
+      border-radius: 22px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      background: transparent;
+      transition: background .16s var(--ease);
+    }
+
+    .zone-option:hover {
+      background: rgba(255,255,255,.10);
+    }
+
+    .zone-option strong {
+      display: block;
+      font-size: 15px;
+      letter-spacing: -.02em;
+    }
+
+    .zone-option span {
+      display: block;
+      margin-top: 4px;
+      color: var(--soft);
+      font-size: 12px;
+    }
+
+    .zone-option em {
+      align-self: center;
+      font-style: normal;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .zone-empty {
+      padding: 20px 14px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 110;
+      right: 16px;
+      bottom: 18px;
+      max-width: min(420px, calc(100vw - 32px));
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(4,7,16,.76);
+      border: 1px solid rgba(255,255,255,.16);
+      color: rgba(255,255,255,.84);
+      box-shadow: 0 18px 60px rgba(0,0,0,.36);
+      backdrop-filter: blur(24px);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity .2s var(--ease), transform .2s var(--ease);
+      font-size: 13px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      :root {
+        --city: 210px;
+        --cell: 58px;
+      }
+
+      .nav,
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .brand,
+      .actions,
+      .date-wrap,
+      .right-tools {
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .brand {
+        text-align: center;
+      }
+
+      .island {
+        width: 100%;
+      }
+
+      .hint {
+        order: -1;
+      }
+    }
+
+    @media (max-width: 620px) {
+      :root {
+        --city: 146px;
+        --cell: 54px;
+        --row: 68px;
+      }
+
+      .app {
+        width: calc(100vw - 14px);
+        padding-top: 10px;
+      }
+
+      .brand p {
+        font-size: 12px;
+      }
+
+      .island {
+        border-radius: 28px;
+      }
+
+      .island .chip {
+        display: none;
+      }
+
+      .toolbar {
+        border-radius: 26px;
+      }
+
+      .left-head {
+        padding: 12px 10px;
+      }
+
+      .left-head span {
+        display: inline-flex;
+        font-size: 11px;
+        padding: 5px 7px;
+      }
+
+      .city-card {
+        padding: 9px 8px;
+        gap: 8px;
+      }
+
+      .city-glow {
+        display: none;
+      }
+
+      .city-name {
+        font-size: 14px;
+      }
+
+      .zone-name {
+        font-size: 11px;
+      }
+
+      .current-time {
+        font-size: 11px;
+      }
+
+      .city-actions {
+        display: none;
+      }
+
+      .time-stack .num {
+        font-size: 21px;
+      }
+
+      .cell .time-stack .num {
+        font-size: 19px;
+      }
+
+      .cell .time-stack .ampm {
+        font-size: 8px;
+      }
+
+      .sheet {
+        width: calc(100vw - 12px);
+        border-radius: 30px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition-duration: .001s !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="nav">
+      <section class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Glass Time</h1>
+          <p>Conversor visual de fecha y hora por zonas horarias.</p>
+        </div>
+      </section>
+
+      <section class="island" aria-live="polite">
+        <div>
+          <small>Hora seleccionada</small>
+          <strong id="selectedSummary">—</strong>
+        </div>
+        <div class="chip" id="selectedDateChip">—</div>
+      </section>
+
+      <section class="actions">
+        <button class="glass-btn" id="nowBtn">Ahora</button>
+        <button class="glass-btn" id="copyBtn">Copiar</button>
+        <div class="calendar-menu" id="calendarMenu">
+          <button class="glass-btn calendar-plus" id="calendarMenuBtn" aria-expanded="false">＋ Guardar</button>
+          <div class="calendar-popover" id="calendarPopover" role="menu">
+            <div class="calendar-title-field">
+              <label for="eventTitleInput">Título</label>
+              <input id="eventTitleInput" type="text" placeholder="Ej. Weekly sync, llamada, recordatorio..." />
+            </div>
+            <button class="calendar-choice" id="googleBtn" role="menuitem">
+              <span class="choice-icon">G</span>
+              <span>
+                <strong>Google Calendar</strong>
+                <em>Abre el evento listo para guardar</em>
+              </span>
+            </button>
+            <button class="calendar-choice" id="icsBtn" role="menuitem">
+              <span class="choice-icon">⌁</span>
+              <span>
+                <strong>Calendario nativo</strong>
+                <em>Apple Calendar / Outlook / .ics</em>
+              </span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </header>
+
+    <section class="toolbar">
+      <div class="date-wrap">
+        <button class="glass-btn" id="prevBtn">← Día</button>
+        <div class="date-pill">
+          <span>Fecha base</span>
+          <input id="dateInput" type="date" />
+        </div>
+        <button class="glass-btn" id="nextBtn">Día →</button>
+      </div>
+
+      <div class="hint">Toca una ciudad para cambiar su timezone · toca o arrastra una hora para convertir.</div>
+
+      <div class="right-tools">
+        <button class="glass-btn" id="addBtn">+ Ciudad</button>
+        <button class="glass-btn" id="resetBtn">Reset</button>
+      </div>
+    </section>
+
+    <section class="board" aria-label="Conversor visual">
+      <div class="header-row">
+        <div class="left-head">
+          <strong id="baseLabel">Base</strong>
+          <span id="durationLabel">Seleccionado · 1h</span>
+        </div>
+        <div class="scroll" id="headScroll">
+          <div class="hours" id="hourHeader"></div>
+        </div>
+      </div>
+
+      <div id="rows"></div>
+    </section>
+  </main>
+
+  <div class="sheet-backdrop" id="backdrop"></div>
+
+  <section class="sheet" id="sheet" aria-modal="true" role="dialog">
+    <div class="grabber"></div>
+    <div class="sheet-top">
+      <div class="sheet-title">
+        <h2 id="sheetTitle">Cambiar timezone</h2>
+        <p id="sheetSubtitle">Busca una ciudad o zona horaria.</p>
+      </div>
+      <button class="glass-btn" id="closeSheetBtn">Cerrar</button>
+    </div>
+    <div class="search">
+      <input id="zoneSearch" type="search" placeholder="Buscar: Madrid, Sydney, UTC, Bali..." />
+    </div>
+    <div class="zone-list" id="zoneList"></div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+/*__GLASS_TIME_BUNDLE__*/
+  </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "glass-time",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".claude/server.js"],
+      "port": 4173
+    }
+  ]
+}

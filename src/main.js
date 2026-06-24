@@ -1,0 +1,186 @@
+"use strict";
+
+/* Glass Time — main (misc actions + wiring + bootstrap)
+   Auto-split from the tested bundle. Edit here; run `node src/build.js` to regenerate dist. */
+/* ---------- misc actions ---------- */
+
+function jumpNow() {
+  const base = baseZone();
+  const p = getParts(new Date(), base.timeZone);
+  state.dateISO = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+  const currentSlot = p.hour * 2 + (p.minute >= 30 ? 1 : 0);
+  state.selectedStartSlot = currentSlot;
+  state.selectedEndSlot = clampSlot(currentSlot + 2);
+  state.cursorSlot = currentSlot;
+  render();
+  focusHour();
+}
+
+function reset() {
+  localStorage.removeItem(STORAGE_KEY);
+  load();
+  render();
+  focusHour();
+  showToast("Reset hecho.");
+}
+
+function showToast(message) {
+  els.toast.textContent = message;
+  els.toast.classList.add("show");
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => els.toast.classList.remove("show"), 2200);
+}
+
+/* ---------- event wiring ---------- */
+
+function bindEvents() {
+  els.prevBtn.addEventListener("click", () => {
+    state.dateISO = addDays(state.dateISO, -1);
+    render();
+  });
+
+  els.nextBtn.addEventListener("click", () => {
+    state.dateISO = addDays(state.dateISO, 1);
+    render();
+  });
+
+  els.dateInput.addEventListener("change", () => {
+    if (els.dateInput.value) {
+      state.dateISO = els.dateInput.value;
+      render();
+    }
+  });
+
+  els.nowBtn.addEventListener("click", jumpNow);
+  els.copyBtn.addEventListener("click", copySelection);
+
+  els.calendarMenuBtn.addEventListener("click", event => {
+    event.stopPropagation();
+    toggleCalendarMenu();
+  });
+  els.googleBtn.addEventListener("click", () => {
+    setCalendarMenu(false);
+    openGoogleCalendar();
+  });
+  els.icsBtn.addEventListener("click", () => {
+    setCalendarMenu(false);
+    downloadICS();
+  });
+
+  els.resetBtn.addEventListener("click", reset);
+  els.addBtn.addEventListener("click", () => openPicker("add"));
+
+  /* --- Timeline pointer interactions (no rerender on movement) --- */
+
+  // Hover cursor band (mouse/pen only — touch must not steal scroll).
+  els.hourHeader.addEventListener("pointermove", event => {
+    if (drag.active || event.pointerType === "touch") return;
+    const head = event.target.closest(".hour-head");
+    if (head) updateCursorDOM(Number(head.dataset.hour) * 2);
+  });
+
+  els.rows.addEventListener("pointermove", event => {
+    if (drag.active || event.pointerType === "touch") return;
+    const cell = event.target.closest(".cell");
+    if (cell) updateCursorDOM(slotFromClientX(event.clientX, cell.closest(".hours")));
+  });
+
+  // Selection start.
+  els.hourHeader.addEventListener("pointerdown", event => {
+    if (!event.target.closest(".hour-head")) return;
+    beginPointer(event, els.hourHeader, true, els.hourHeader);
+  });
+
+  els.rows.addEventListener("pointerdown", event => {
+    if (event.target.closest(".city-card")) return;
+    const cell = event.target.closest(".cell");
+    if (!cell) return;
+    beginPointer(event, cell.closest(".hours"), false, els.rows);
+  });
+
+  document.addEventListener("pointermove", movePointer, { passive: false });
+  document.addEventListener("pointerup", endPointer);
+  document.addEventListener("pointercancel", endPointer);
+
+  // City card actions (click — not part of the drag system).
+  els.rows.addEventListener("click", event => {
+    const row = event.target.closest(".time-row");
+    if (!row) return;
+
+    if (event.target.closest(".remove-zone")) {
+      event.stopPropagation();
+      if (state.zones.length <= 1) return;
+      state.zones = state.zones.filter(z => z.id !== row.dataset.zoneId);
+      render();
+      return;
+    }
+
+    if (event.target.closest(".make-base")) {
+      event.stopPropagation();
+      const i = state.zones.findIndex(z => z.id === row.dataset.zoneId);
+      if (i > 0) {
+        const zone = state.zones[i];
+        moveZoneToBase(zone.id, true);
+        render();
+        showToast(`${zone.label} ahora es la base.`);
+      }
+      return;
+    }
+
+    if (event.target.closest(".cell")) return;
+
+    if (event.target.closest(".city-card")) {
+      openPicker("edit", row.dataset.zoneId);
+    }
+  });
+
+  els.zoneSearch.addEventListener("input", () => renderZoneOptions(els.zoneSearch.value));
+
+  els.zoneList.addEventListener("click", event => {
+    const option = event.target.closest(".zone-option");
+    if (!option) return;
+    chooseZone(option.dataset.label, option.dataset.timezone);
+  });
+
+  els.closeSheetBtn.addEventListener("click", closePicker);
+  els.backdrop.addEventListener("click", closePicker);
+
+  document.addEventListener("click", event => {
+    if (!event.target.closest(".calendar-menu")) setCalendarMenu(false);
+  });
+
+  window.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      closePicker();
+      setCalendarMenu(false);
+    }
+    if (event.target.matches("input")) return;
+
+    if (event.key === "ArrowLeft") {
+      const duration = normalizedRange().durationSlots;
+      const nextStart = Math.max(0, normalizedRange().start - 1);
+      state.selectedStartSlot = nextStart;
+      state.selectedEndSlot = Math.min(48, nextStart + duration);
+      state.cursorSlot = nextStart;
+      render();
+      focusHour();
+    }
+
+    if (event.key === "ArrowRight") {
+      const duration = normalizedRange().durationSlots;
+      const nextStart = Math.min(47, normalizedRange().start + 1);
+      state.selectedStartSlot = nextStart;
+      state.selectedEndSlot = Math.min(48, nextStart + duration);
+      state.cursorSlot = nextStart;
+      render();
+      focusHour();
+    }
+  });
+}
+
+/* ---------- bootstrap ---------- */
+
+load();
+bindEvents();
+render();
+setTimeout(focusHour, 160);
