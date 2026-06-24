@@ -1,0 +1,100 @@
+# Changelog
+
+All notable changes to Glass Time.
+
+## [0.7.0] — 2026-06-25
+
+Stabilisation + modularisation pass. No new product features; the focus was
+killing the scroll/selection bugs, fixing a latent timezone-conversion bug, and
+splitting the single file into a maintainable module structure.
+
+### Fixed
+
+- **Critical — timeline no longer jumps, flickers, or resets scroll position.**
+  Selecting a range used to call a full `render()` on every `pointermove`, which
+  rebuilt the entire timeline via `innerHTML` and lost the horizontal scroll
+  position. Pointer interactions now patch the existing DOM only
+  (`applySelectionDOM`, class-only cursor updates). `render()` is reserved for
+  structural changes (zones, date, base timezone).
+- **Critical — timezone conversion was wrong.** The `zonedTimeToUtc` fixed-point
+  iteration did not anchor to the target wall time, so it diverged: e.g. 9:00 AM
+  on 25/06 in Sydney resolved to 3:00 AM on 24/06. The header and Dynamic Island
+  showed dates that disagreed with the date picker. The iteration is now anchored
+  to the target and converges in 1–2 passes, including across DST boundaries.
+
+### Changed — interaction model
+
+- **Drag threshold.** A selection only starts after the pointer crosses a small
+  threshold (5px). A normal horizontal swipe no longer creates an accidental
+  selection.
+- **Pointer-type aware gestures.**
+  - Touch: a moving touch is treated as a scroll and never starts a selection, so
+    horizontal panning stays native and smooth. A touch *tap* still selects 30m.
+  - Mouse / pen: a tap selects (30m on a cell, 1h on a header hour); a drag past
+    the threshold selects a range.
+- **Pointer capture** is acquired only once a real drag has started, so it never
+  hijacks trackpad/touch panning.
+- **Scroll position is preserved** across every structural rerender, and all
+  timeline scrollers (header + each city row) stay synchronised in both
+  directions.
+- Slot maths now maps an absolute `clientX` to a half-hour slot via the row's
+  geometry, so 30-minute precision is correct regardless of scroll offset.
+
+### Changed — UI / polish
+
+- **Cursor band** is a soft, near-full-cell vertical band sitting *behind* the
+  time number and AM/PM label (was effectively a thin overlay). It appears across
+  every row at the active time and animates via opacity/transform only.
+- **Dynamic Island** stays concise: `"<duration> seleccionadas"` plus a secondary
+  line `"<Base> · <day dd/mm> · <range>"`. It never lists every city.
+- The fixed left header shows `"Seleccionado · <duration>"`.
+- Added a **"Base"** tag on the anchor city row for clearer hierarchy; city names
+  in the picker/rows keep name, local time, GMT offset and IANA zone.
+- Added an **empty-state** message in the timezone picker.
+- `touch-action: pan-x pan-y` + `overscroll-behavior-x: contain` on scrollers for
+  natural trackpad/touch panning without page-scroll lock.
+- `prefers-reduced-motion` support.
+
+### Changed — date / timezone safety
+
+- End-of-day selections at 24:00 render as **12 AM** (never `24:30`/`25:00`) and
+  roll the date forward correctly; ranges crossing midnight stay correct.
+- Adding a city as the new base preserves the selected real-world instant and the
+  selection duration (previously it only reset the cursor).
+- Calendar export (Google + `.ics`) uses the exact selected start/end (not a
+  hard-coded one-hour event), tags the base IANA timezone, embeds the converted
+  ranges for every city, and the `.ics` includes a 15-minute reminder.
+
+### Architecture
+
+- Split the single HTML file into the target module layout under `/src`:
+
+  ```
+  /src
+    /core   date-utils.js · timezone-engine.js · calendar-export.js
+    /state  store.js · persistence.js
+    /ui     timeline-renderer.js · cursor-controller.js · range-selection.js
+            timezone-picker.js · calendar-menu.js
+    /data   timezone-library.js
+    shell.html   (markup + styles, single source)
+    build.js     (concatenates modules → dist)
+    main.js      (misc actions, event wiring, bootstrap)
+  /dist
+    glass-time.html   (self-contained, generated bundle — the distributable)
+  ```
+
+- Modules are plain classic scripts sharing global scope (no `import`/`export`),
+  so the "build" is a dependency-ordered concatenation with **no third-party
+  tooling**. Run `node src/build.js` to regenerate `dist/glass-time.html`.
+- `dist/glass-time.html` remains a single, dependency-free, self-contained file
+  that runs by opening it directly in a browser.
+
+### Notes / limitations
+
+- City → IANA mapping is a curated static list (`timezone-library.js`); it is not
+  the full IANA database and has no fuzzy/alias search beyond substring matching.
+- Nonexistent local times during a DST spring-forward gap resolve to the nearest
+  valid adjacent instant (expected for wall-clock input); ambiguous fall-back
+  times pick one side deterministically.
+- `dist/glass-time.html` is generated from `/src`; edit the modules and rebuild
+  rather than editing the bundle directly.
