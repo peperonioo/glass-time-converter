@@ -80,6 +80,7 @@ function movePointer(event) {
     // Mouse / pen: only start selecting after crossing the threshold.
     if (Math.abs(dx) <= DRAG_THRESHOLD && Math.abs(dy) <= DRAG_THRESHOLD) return;
     drag.selecting = true;
+    document.body.classList.add("selecting"); // band tracks snappily while dragging
     try { drag.captureTarget?.setPointerCapture?.(drag.pointerId); } catch { /* ignore */ }
   }
 
@@ -94,6 +95,7 @@ function endPointer(event) {
   try { drag.captureTarget?.releasePointerCapture?.(drag.pointerId); } catch { /* ignore */ }
   drag.active = false;
   drag.selecting = false;
+  document.body.classList.remove("selecting"); // re-enable the eased settle glide
 
   if (!wasSelecting) {
     // Tap: header => 1h, cell => 30m minimum.

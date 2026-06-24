@@ -2,6 +2,42 @@
 
 All notable changes to Glass Time.
 
+## [0.7.1] — 2026-06-25
+
+Premium selection feel + elegant motion. Builds on the 0.7.0 stabilisation
+without touching the conversion/calendar logic.
+
+### Changed — selection feel
+
+- **Continuous floating selection band.** The selection used to be painted
+  cell-by-cell (each cell's `::before`), which made an extending range look like
+  it "stepped". It is now a single liquid-glass band per row, positioned from
+  CSS variables (`--sel-start` / `--sel-len`, in half-hour units) on the row's
+  `.hours` element. The band **glides** between half-hour slots via a CSS
+  transition on `left`/`width`.
+- **Adaptive glide timing.** While a drag is in progress (`body.selecting`) the
+  band tracks the pointer snappily (~0.12s); on release it settles with a longer
+  eased glide (~0.42s). Keyboard arrow nudges and base/timezone changes also
+  glide.
+- The active edge now reads as a bright **handle** (the cursor band sits above
+  the selection), making drag direction obvious. Selected hour numbers brighten
+  to full white for contrast.
+
+### Added — motion & polish
+
+- Staggered **entrance animation** for the nav, toolbar and board on load.
+- Subtle **breathing glow** on the selection band (paused during active drag).
+- Gentle **pulse** on the live "now" marker.
+- **Tactile press** feedback (scale-down) on buttons, city cards, cells, picker
+  and calendar options.
+- Soft ease-in for the bottom-sheet list and calendar popover contents.
+- `prefers-reduced-motion` now disables animations as well as transitions.
+
+### Notes
+
+- Purely presentational: timezone conversion, persistence, calendar export and
+  the pointer/scroll model from 0.7.0 are unchanged and still pass the QA sweep.
+
 ## [0.7.0] — 2026-06-25
 
 Stabilisation + modularisation pass. No new product features; the focus was

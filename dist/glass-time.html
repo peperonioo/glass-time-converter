@@ -429,6 +429,7 @@
     }
 
     .hours {
+      position: relative;
       display: grid;
       grid-template-columns: repeat(24, var(--cell));
       width: calc(24 * var(--cell));
@@ -480,7 +481,7 @@
     /* Soft full-cell cursor band — sits behind the time number, never blocks text */
     .cursor-band {
       position: absolute;
-      z-index: 0;
+      z-index: 1;
       inset: 3px 3px;
       border-radius: 18px;
       opacity: 0;
@@ -674,29 +675,53 @@
       transform: scale(1);
     }
 
-    .cell.selected::before {
-      left: calc(5px + var(--sel-left, 0) * .01 * (100% - 10px));
-      right: auto;
-      width: calc(var(--sel-width, 100) * .01 * (100% - 10px));
+    /* One continuous selection band per row that glides between half-hour
+       slots instead of painting cell-by-cell. --sel-start / --sel-len are set
+       (in half-hour units) on the parent .hours element. */
+    .sel-band {
+      position: absolute;
+      z-index: 0;
+      top: 8px;
+      bottom: 8px;
+      left: calc(var(--sel-start, 18) * (var(--cell) / 2) + 4px);
+      width: calc(var(--sel-len, 2) * (var(--cell) / 2) - 8px);
+      border-radius: 18px;
       background:
-        linear-gradient(180deg, rgba(159,215,255,.48), rgba(217,184,255,.35));
+        linear-gradient(180deg, rgba(159,215,255,.50), rgba(217,184,255,.36));
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.46),
-        0 12px 34px rgba(159,215,255,.18);
-      transform: scale(1);
+        inset 0 1px 0 rgba(255,255,255,.50),
+        inset 0 -1px 0 rgba(255,255,255,.12),
+        0 14px 38px rgba(159,215,255,.20);
+      pointer-events: none;
+      transform: translateZ(0);
+      transition:
+        left .42s var(--ease),
+        width .42s var(--ease);
+      will-change: left, width;
+      animation: gt-band-breathe 4.5s ease-in-out infinite;
     }
 
-    .cell.selected.start-half::before {
-      border-top-left-radius: 17px;
-      border-bottom-left-radius: 17px;
+    /* Soft top sheen for depth. */
+    .sel-band::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255,255,255,.22), transparent 46%);
+      pointer-events: none;
     }
 
-    .cell.selected.end-half::before {
-      border-top-right-radius: 17px;
-      border-bottom-right-radius: 17px;
+    /* Snappier tracking while actively dragging a selection. */
+    body.selecting .sel-band {
+      transition-duration: .12s;
+      animation: none;
     }
 
-    .cell.selected.cursor .cursor-band {
+    .cell.selected .time-stack .num {
+      color: #fff;
+    }
+
+    .cell.cursor .cursor-band {
       border-color: rgba(255,255,255,.45);
       background:
         linear-gradient(180deg, rgba(159,215,255,.16), rgba(217,184,255,.11)),
@@ -1035,9 +1060,65 @@
       }
     }
 
+    /* ---------- motion / polish ---------- */
+
+    @keyframes gt-rise {
+      from { opacity: 0; transform: translateY(16px) scale(.99); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    @keyframes gt-band-breathe {
+      0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.50), inset 0 -1px 0 rgba(255,255,255,.12), 0 14px 38px rgba(159,215,255,.18); }
+      50%      { box-shadow: inset 0 1px 0 rgba(255,255,255,.50), inset 0 -1px 0 rgba(255,255,255,.12), 0 18px 50px rgba(159,215,255,.32); }
+    }
+
+    @keyframes gt-now-pulse {
+      0%, 100% { opacity: .55; }
+      50%      { opacity: 1; }
+    }
+
+    @keyframes gt-pop {
+      0%   { transform: scale(.6); opacity: 0; }
+      60%  { transform: scale(1.06); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .nav     { animation: gt-rise .5s var(--ease) both; }
+    .toolbar { animation: gt-rise .55s .06s var(--ease) both; }
+    .board   { animation: gt-rise .6s .12s var(--ease) both; }
+
+    /* Gentle living "now" marker. */
+    .cell.now {
+      box-shadow: none;
+    }
+    .cell.now::before {
+      box-shadow: inset 2px 0 0 rgba(255,255,255,.8);
+      animation: gt-now-pulse 2.6s ease-in-out infinite;
+    }
+
+    /* Tactile press feedback. */
+    .glass-btn:active { transform: translateY(0) scale(.96); }
+    .mini-btn:active  { transform: scale(.9); }
+    .calendar-choice:active,
+    .zone-option:active { transform: scale(.985); }
+    .cell:active::before {
+      background: rgba(255,255,255,.16);
+      transform: scale(.95);
+    }
+    .city-card:active { transform: scale(.992); }
+
+    /* Sheet / popover content easing in. */
+    .sheet.open .zone-list,
+    .calendar-menu.open .calendar-popover > * {
+      animation: gt-rise .32s var(--ease) both;
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      * {
+      *, *::before, *::after {
         transition-duration: .001s !important;
+        animation-duration: .001s !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
       }
     }
   </style>
@@ -1658,21 +1739,11 @@
       els.hourHeader.innerHTML = html;
     }
 
-    function cellSelectionFor(h, range) {
-      const cellStart = h * 2;
-      const cellEnd = cellStart + 2;
-      const overlapStart = Math.max(cellStart, range.start);
-      const overlapEnd = Math.min(cellEnd, range.end);
-      const selected = overlapEnd > overlapStart;
-      const selLeft = selected ? (overlapStart - cellStart) * 50 : 0;
-      const selWidth = selected ? (overlapEnd - overlapStart) * 50 : 0;
-      return {
-        selected,
-        selLeft,
-        selWidth,
-        startHalf: selected && selLeft > 0,
-        endHalf: selected && (selLeft + selWidth) < 100
-      };
+    /* A cell is part of the selection if the range overlaps its 2 half-hour slots.
+       The visual fill is drawn by the floating .sel-band; this flag only drives the
+       per-cell text emphasis. */
+    function cellSelected(h, range) {
+      return h * 2 < range.end && h * 2 + 2 > range.start;
     }
 
     function renderRows() {
@@ -1693,7 +1764,7 @@
           const localISO = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
           const dayShift = localISO < state.dateISO ? "-1" : localISO > state.dateISO ? "+1" : "";
           const dayShiftLabel = dayShift === "+1" ? "Día +1" : dayShift === "-1" ? "Día -1" : "";
-          const sel = cellSelectionFor(h, range);
+          const selected = cellSelected(h, range);
           const night = p.hour < 6 || p.hour >= 22;
           const morning = p.hour >= 6 && p.hour < 10;
           const work = p.hour >= 10 && p.hour < 18;
@@ -1702,8 +1773,7 @@
           const cursor = h === slotHour(state.cursorSlot);
 
           return `
-            <div class="cell ${sel.selected ? "selected" : ""} ${sel.startHalf ? "start-half" : ""} ${sel.endHalf ? "end-half" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${dayShift ? "day-shift" : ""} ${nowClass}"
-              style="--sel-left:${sel.selLeft}; --sel-width:${sel.selWidth};"
+            <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${dayShift ? "day-shift" : ""} ${nowClass}"
               data-hour="${h}"
               data-shift="${dayShift}"
               data-shift-label="${dayShiftLabel}"
@@ -1733,7 +1803,10 @@
               </div>
             </div>
             <div class="scroll body-scroll">
-              <div class="hours">${cells}</div>
+              <div class="hours" style="--sel-start:${range.start}; --sel-len:${range.durationSlots};">
+                ${cells}
+                <div class="sel-band" aria-hidden="true"></div>
+              </div>
             </div>
           </div>
         `;
@@ -1755,17 +1828,18 @@
       els.durationLabel.textContent = `Seleccionado · ${duration}`;
     }
 
-    /* Patch selection styling on the existing DOM — no rebuild, no scroll loss. */
+    /* Patch selection styling on the existing DOM — no rebuild, no scroll loss.
+       The floating .sel-band glides via a CSS transition when these vars change. */
     function applySelectionDOM() {
       const range = normalizedRange();
+      document.querySelectorAll(".body-scroll .hours").forEach(hours => {
+        hours.style.setProperty("--sel-start", range.start);
+        hours.style.setProperty("--sel-len", range.durationSlots);
+      });
       for (let h = 0; h < 24; h++) {
-        const sel = cellSelectionFor(h, range);
-        document.querySelectorAll(`.cell[data-hour="${h}"]`).forEach(cell => {
-          cell.classList.toggle("selected", sel.selected);
-          cell.classList.toggle("start-half", sel.startHalf);
-          cell.classList.toggle("end-half", sel.endHalf);
-          cell.style.setProperty("--sel-left", sel.selLeft);
-          cell.style.setProperty("--sel-width", sel.selWidth);
+        const selected = cellSelected(h, range);
+        document.querySelectorAll(`.body-scroll .cell[data-hour="${h}"]`).forEach(cell => {
+          cell.classList.toggle("selected", selected);
         });
       }
     }
@@ -1874,6 +1948,7 @@
         // Mouse / pen: only start selecting after crossing the threshold.
         if (Math.abs(dx) <= DRAG_THRESHOLD && Math.abs(dy) <= DRAG_THRESHOLD) return;
         drag.selecting = true;
+        document.body.classList.add("selecting"); // band tracks snappily while dragging
         try { drag.captureTarget?.setPointerCapture?.(drag.pointerId); } catch { /* ignore */ }
       }
 
@@ -1888,6 +1963,7 @@
       try { drag.captureTarget?.releasePointerCapture?.(drag.pointerId); } catch { /* ignore */ }
       drag.active = false;
       drag.selecting = false;
+      document.body.classList.remove("selecting"); // re-enable the eased settle glide
 
       if (!wasSelecting) {
         // Tap: header => 1h, cell => 30m minimum.

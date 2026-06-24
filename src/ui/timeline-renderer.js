@@ -45,21 +45,11 @@ function renderHeader() {
   els.hourHeader.innerHTML = html;
 }
 
-function cellSelectionFor(h, range) {
-  const cellStart = h * 2;
-  const cellEnd = cellStart + 2;
-  const overlapStart = Math.max(cellStart, range.start);
-  const overlapEnd = Math.min(cellEnd, range.end);
-  const selected = overlapEnd > overlapStart;
-  const selLeft = selected ? (overlapStart - cellStart) * 50 : 0;
-  const selWidth = selected ? (overlapEnd - overlapStart) * 50 : 0;
-  return {
-    selected,
-    selLeft,
-    selWidth,
-    startHalf: selected && selLeft > 0,
-    endHalf: selected && (selLeft + selWidth) < 100
-  };
+/* A cell is part of the selection if the range overlaps its 2 half-hour slots.
+   The visual fill is drawn by the floating .sel-band; this flag only drives the
+   per-cell text emphasis. */
+function cellSelected(h, range) {
+  return h * 2 < range.end && h * 2 + 2 > range.start;
 }
 
 function renderRows() {
@@ -80,7 +70,7 @@ function renderRows() {
       const localISO = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
       const dayShift = localISO < state.dateISO ? "-1" : localISO > state.dateISO ? "+1" : "";
       const dayShiftLabel = dayShift === "+1" ? "Día +1" : dayShift === "-1" ? "Día -1" : "";
-      const sel = cellSelectionFor(h, range);
+      const selected = cellSelected(h, range);
       const night = p.hour < 6 || p.hour >= 22;
       const morning = p.hour >= 6 && p.hour < 10;
       const work = p.hour >= 10 && p.hour < 18;
@@ -89,8 +79,7 @@ function renderRows() {
       const cursor = h === slotHour(state.cursorSlot);
 
       return `
-        <div class="cell ${sel.selected ? "selected" : ""} ${sel.startHalf ? "start-half" : ""} ${sel.endHalf ? "end-half" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${dayShift ? "day-shift" : ""} ${nowClass}"
-          style="--sel-left:${sel.selLeft}; --sel-width:${sel.selWidth};"
+        <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${dayShift ? "day-shift" : ""} ${nowClass}"
           data-hour="${h}"
           data-shift="${dayShift}"
           data-shift-label="${dayShiftLabel}"
@@ -120,7 +109,10 @@ function renderRows() {
           </div>
         </div>
         <div class="scroll body-scroll">
-          <div class="hours">${cells}</div>
+          <div class="hours" style="--sel-start:${range.start}; --sel-len:${range.durationSlots};">
+            ${cells}
+            <div class="sel-band" aria-hidden="true"></div>
+          </div>
         </div>
       </div>
     `;
@@ -142,17 +134,18 @@ function renderIsland() {
   els.durationLabel.textContent = `Seleccionado · ${duration}`;
 }
 
-/* Patch selection styling on the existing DOM — no rebuild, no scroll loss. */
+/* Patch selection styling on the existing DOM — no rebuild, no scroll loss.
+   The floating .sel-band glides via a CSS transition when these vars change. */
 function applySelectionDOM() {
   const range = normalizedRange();
+  document.querySelectorAll(".body-scroll .hours").forEach(hours => {
+    hours.style.setProperty("--sel-start", range.start);
+    hours.style.setProperty("--sel-len", range.durationSlots);
+  });
   for (let h = 0; h < 24; h++) {
-    const sel = cellSelectionFor(h, range);
-    document.querySelectorAll(`.cell[data-hour="${h}"]`).forEach(cell => {
-      cell.classList.toggle("selected", sel.selected);
-      cell.classList.toggle("start-half", sel.startHalf);
-      cell.classList.toggle("end-half", sel.endHalf);
-      cell.style.setProperty("--sel-left", sel.selLeft);
-      cell.style.setProperty("--sel-width", sel.selWidth);
+    const selected = cellSelected(h, range);
+    document.querySelectorAll(`.body-scroll .cell[data-hour="${h}"]`).forEach(cell => {
+      cell.classList.toggle("selected", selected);
     });
   }
 }
