@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Glass Time v0.6 — Visual Timezone Converter</title>
+  <style>
+    :root {
+      --bg: #070812;
+      --bg2: #10152a;
+      --text: rgba(255,255,255,.94);
+      --soft: rgba(255,255,255,.66);
+      --muted: rgba(255,255,255,.42);
+      --line: rgba(255,255,255,.12);
+      --glass: rgba(255,255,255,.09);
+      --glass2: rgba(255,255,255,.14);
+      --ink: rgba(5,8,18,.72);
+      --blue: #9fd7ff;
+      --violet: #d9b8ff;
+      --mint: #bdf7d2;
+      --peach: #ffd2b7;
+      --pink: #ffb5df;
+      --cell: 64px;
+      --city: 250px;
+      --row: 72px;
+      --radius-xl: 34px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --ease: cubic-bezier(.2,.8,.2,1);
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(circle at 14% 10%, rgba(115, 198, 255, .32), transparent 31%),
+        radial-gradient(circle at 82% 7%, rgba(217, 184, 255, .30), transparent 27%),
+        radial-gradient(circle at 76% 88%, rgba(255, 181, 223, .16), transparent 34%),
+        linear-gradient(145deg, var(--bg), var(--bg2) 58%, #171b35);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.08), transparent 22%, transparent 70%, rgba(255,255,255,.04)),
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,.10), transparent 42%);
+      mix-blend-mode: overlay;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      width: min(1420px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 18px 0 34px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .nav {
+      position: sticky;
+      top: 12px;
+      z-index: 30;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 32% 25%, rgba(255,255,255,.95), transparent 18%),
+        linear-gradient(135deg, var(--blue), var(--violet) 48%, var(--pink));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.62),
+        0 20px 70px rgba(159,215,255,.22);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(22px, 2.6vw, 34px);
+      letter-spacing: -.055em;
+      line-height: .95;
+    }
+
+    .brand p {
+      margin: 6px 0 0;
+      color: var(--soft);
+      font-size: 13px;
+    }
+
+    .island {
+      width: min(610px, 52vw);
+      min-height: 58px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06)),
+        rgba(3, 5, 12, .72);
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.24),
+        0 20px 70px rgba(0,0,0,.38);
+      backdrop-filter: blur(30px) saturate(170%);
+      -webkit-backdrop-filter: blur(30px) saturate(170%);
+    }
+
+    .island small {
+      display: block;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      font-size: 10px;
+      margin-bottom: 3px;
+    }
+
+    .island strong {
+      display: block;
+      font-size: clamp(18px, 2.4vw, 28px);
+      line-height: 1.05;
+      letter-spacing: -.055em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .island .chip {
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.11);
+      color: rgba(255,255,255,.78);
+      font-size: 12px;
+      flex: 0 0 auto;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .glass-btn {
+      padding: 11px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.16);
+      backdrop-filter: blur(20px);
+      color: rgba(255,255,255,.86);
+      transition: transform .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease);
+    }
+
+    .glass-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.16);
+      border-color: rgba(255,255,255,.24);
+    }
+
+    .calendar-menu {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .calendar-plus {
+      padding-left: 13px;
+      padding-right: 15px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.17), rgba(255,255,255,.075)),
+        rgba(3,5,12,.55);
+      border-color: rgba(255,255,255,.18);
+    }
+
+    .calendar-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
+      width: min(330px, calc(100vw - 32px));
+      padding: 8px;
+      border-radius: 26px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.07)),
+        rgba(5, 7, 15, .86);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.22),
+        0 26px 80px rgba(0,0,0,.46);
+      backdrop-filter: blur(30px) saturate(170%);
+      -webkit-backdrop-filter: blur(30px) saturate(170%);
+      opacity: 0;
+      transform: translateY(-6px) scale(.98);
+      pointer-events: none;
+      transition: opacity .18s var(--ease), transform .18s var(--ease);
+      z-index: 70;
+    }
+
+    .calendar-title-field {
+      padding: 8px 8px 6px;
+    }
+
+    .calendar-title-field label {
+      display: block;
+      margin: 0 0 7px 4px;
+      color: var(--soft);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .11em;
+    }
+
+    .calendar-title-field input {
+      width: 100%;
+      padding: 12px 13px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.14);
+      outline: none;
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .calendar-menu.open .calendar-popover {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .calendar-choice {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 10px;
+      align-items: center;
+      text-align: left;
+      padding: 11px;
+      border-radius: 20px;
+      background: transparent;
+      color: var(--text);
+      transition: background .16s var(--ease), transform .16s var(--ease);
+    }
+
+    .calendar-choice:hover {
+      background: rgba(255,255,255,.11);
+      transform: translateY(-1px);
+    }
+
+    .choice-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(135deg, rgba(159,215,255,.32), rgba(217,184,255,.25)),
+        rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.14);
+      font-weight: 800;
+    }
+
+    .calendar-choice strong {
+      display: block;
+      font-size: 14px;
+      letter-spacing: -.02em;
+    }
+
+    .calendar-choice em {
+      display: block;
+      margin-top: 3px;
+      font-style: normal;
+      color: var(--soft);
+      font-size: 12px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+      padding: 12px;
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.055)),
+        rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 22px 65px rgba(0,0,0,.18);
+      backdrop-filter: blur(28px) saturate(160%);
+      -webkit-backdrop-filter: blur(28px) saturate(160%);
+    }
+
+    .date-wrap {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .date-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(3,5,12,.34);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+
+    .date-pill span {
+      color: var(--soft);
+      font-size: 13px;
+    }
+
+    input[type="date"] {
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      color-scheme: dark;
+      min-width: 132px;
+    }
+
+    .hint {
+      color: var(--soft);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .right-tools {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .board {
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.045)),
+        rgba(255,255,255,.055);
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 24px 80px rgba(0,0,0,.24);
+      backdrop-filter: blur(30px) saturate(160%);
+      -webkit-backdrop-filter: blur(30px) saturate(160%);
+    }
+
+    .header-row,
+    .time-row {
+      display: grid;
+      grid-template-columns: var(--city) 1fr;
+    }
+
+    .left-head {
+      min-height: 74px;
+      padding: 16px 18px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.045);
+    }
+
+    .left-head strong {
+      display: block;
+      font-size: 15px;
+      letter-spacing: -.02em;
+    }
+
+    .left-head span {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 8px;
+      padding: 6px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: rgba(255,255,255,.82);
+      background:
+        linear-gradient(180deg, rgba(159,215,255,.18), rgba(217,184,255,.10)),
+        rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.13);
+    }
+
+    .scroll {
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.28) transparent;
+    }
+
+    .hours {
+      display: grid;
+      grid-template-columns: repeat(24, var(--cell));
+      width: calc(24 * var(--cell));
+    }
+
+    .hour-head {
+      position: relative;
+      min-height: 74px;
+      padding: 13px 5px 9px;
+      border-right: 1px solid rgba(255,255,255,.09);
+      border-bottom: 1px solid var(--line);
+      text-align: center;
+      background: rgba(255,255,255,.032);
+    }
+
+    .hour-head .h {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+    }
+
+    .time-stack {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      line-height: .9;
+      gap: 5px;
+    }
+
+    .time-stack .num {
+      font-size: 24px;
+      font-weight: 820;
+      letter-spacing: -.07em;
+    }
+
+    .time-stack .ampm {
+      font-size: 10px;
+      font-weight: 760;
+      letter-spacing: .10em;
+      color: rgba(255,255,255,.48);
+    }
+
+    .cell.selected .time-stack .ampm {
+      color: rgba(255,255,255,.82);
+    }
+
+    .cursor-band {
+      position: absolute;
+      z-index: 0;
+      inset: 4px 3px;
+      border-radius: 20px;
+      opacity: 0;
+      transform: scale(.94);
+      background:
+        linear-gradient(180deg, rgba(159,215,255,.115), rgba(217,184,255,.075)),
+        rgba(255,255,255,.035);
+      border: 1px solid rgba(255,255,255,.28);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.24),
+        inset 0 -1px 0 rgba(255,255,255,.08),
+        0 0 24px rgba(159,215,255,.20);
+      transition: opacity .14s var(--ease), transform .14s var(--ease), border-color .14s var(--ease);
+      pointer-events: none;
+    }
+
+    .hour-head.cursor .cursor-band,
+    .cell.cursor .cursor-band {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .hour-head.cursor,
+    .cell.cursor {
+      background-image: linear-gradient(180deg, rgba(159,215,255,.045), rgba(217,184,255,.035));
+    }
+
+    .cell.cursor .time-stack .ampm,
+    .hour-head.cursor .time-stack .ampm {
+      color: rgba(255,255,255,.86);
+    }
+
+    .hour-head .d {
+      position: relative;
+      z-index: 1;
+      margin-top: 6px;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .time-row {
+      min-height: var(--row);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+
+    .time-row:last-child {
+      border-bottom: 0;
+    }
+
+    .city-card {
+      min-height: var(--row);
+      padding: 10px 12px;
+      border-right: 1px solid var(--line);
+      background: rgba(255,255,255,.028);
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      transition: background .18s var(--ease);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .city-card:hover {
+      background: rgba(255,255,255,.07);
+    }
+
+    .city-card.anchor {
+      background:
+        linear-gradient(90deg, rgba(159,215,255,.13), rgba(217,184,255,.05)),
+        rgba(255,255,255,.035);
+    }
+
+    .city-glow {
+      width: 12px;
+      align-self: stretch;
+      min-height: 44px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--blue), var(--violet));
+      box-shadow: 0 0 24px rgba(159,215,255,.24);
+      flex: 0 0 auto;
+      opacity: .92;
+    }
+
+    .city-main {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .city-line {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .city-name {
+      font-size: 16px;
+      font-weight: 780;
+      letter-spacing: -.025em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .offset {
+      color: var(--muted);
+      font-size: 11px;
+      flex: 0 0 auto;
+    }
+
+    .zone-name {
+      margin-top: 4px;
+      color: var(--soft);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .current-time {
+      margin-top: 5px;
+      color: rgba(255,255,255,.82);
+      font-size: 12px;
+      letter-spacing: -.01em;
+    }
+
+    .city-actions {
+      display: flex;
+      gap: 5px;
+      flex: 0 0 auto;
+    }
+
+    .mini-btn {
+      width: 31px;
+      height: 31px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.66);
+      transition: background .18s var(--ease), color .18s var(--ease), transform .18s var(--ease);
+    }
+
+    .mini-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.14);
+      color: var(--text);
+    }
+
+    .cell {
+      height: var(--row);
+      border-right: 1px solid rgba(255,255,255,.075);
+      display: grid;
+      place-items: center;
+      position: relative;
+      color: rgba(255,255,255,.80);
+      cursor: pointer;
+      user-select: none;
+      transition: background .14s var(--ease), color .14s var(--ease);
+    }
+
+    .cell::before {
+      content: "";
+      position: absolute;
+      inset: 9px 5px;
+      border-radius: 17px;
+      background: transparent;
+      transform: scale(.93);
+      transition: background .16s var(--ease), transform .16s var(--ease), box-shadow .16s var(--ease);
+    }
+
+    .cell:hover::before {
+      background: rgba(255,255,255,.10);
+      transform: scale(1);
+    }
+
+    .cell.selected::before {
+      left: calc(5px + var(--sel-left, 0%) * .01 * (100% - 10px));
+      right: auto;
+      width: calc(var(--sel-width, 100%) * .01 * (100% - 10px));
+      background:
+        linear-gradient(180deg, rgba(159,215,255,.48), rgba(217,184,255,.35));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.46),
+        0 12px 34px rgba(159,215,255,.18);
+      transform: scale(1);
+    }
+
+    .cell.selected.start-half::before {
+      border-top-left-radius: 17px;
+      border-bottom-left-radius: 17px;
+    }
+
+    .cell.selected.end-half::before {
+      border-top-right-radius: 17px;
+      border-bottom-right-radius: 17px;
+    }
+
+    .cell.selected.cursor .cursor-band {
+      border-color: rgba(255,255,255,.45);
+      background:
+        linear-gradient(180deg, rgba(159,215,255,.16), rgba(217,184,255,.11)),
+        rgba(255,255,255,.05);
+    }
+
+    .cell .t {
+      position: relative;
+      z-index: 1;
+    }
+
+    .cell .time-stack .num {
+      font-size: 21px;
+    }
+
+    .cell .time-stack .ampm {
+      font-size: 9px;
+    }
+
+    .cell.night {
+      color: rgba(255,255,255,.40);
+      background: rgba(4,7,18,.22);
+    }
+
+    .cell.morning {
+      background: rgba(255,210,183,.045);
+    }
+
+    .cell.work {
+      background: rgba(189,247,210,.045);
+    }
+
+    .cell.evening {
+      background: rgba(217,184,255,.045);
+    }
+
+    .cell.day-shift::after {
+      content: attr(data-shift-label);
+      position: absolute;
+      z-index: 3;
+      top: 5px;
+      right: 5px;
+      padding: 2px 5px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.24);
+      border: 1px solid rgba(255,255,255,.13);
+      color: rgba(255,255,255,.58);
+      font-size: 8px;
+      font-weight: 820;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .cell.now {
+      box-shadow: inset 2px 0 0 rgba(255,255,255,.72);
+    }
+
+    .sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(0,0,0,.28);
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s var(--ease);
+    }
+
+    .sheet-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sheet {
+      position: fixed;
+      left: 50%;
+      bottom: max(14px, env(safe-area-inset-bottom));
+      z-index: 90;
+      width: min(760px, calc(100vw - 24px));
+      max-height: min(720px, calc(100vh - 34px));
+      transform: translateX(-50%) translateY(24px) scale(.98);
+      opacity: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      border-radius: 34px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.075)),
+        rgba(8, 10, 20, .82);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.26),
+        0 28px 90px rgba(0,0,0,.48);
+      backdrop-filter: blur(34px) saturate(175%);
+      -webkit-backdrop-filter: blur(34px) saturate(175%);
+      overflow: hidden;
+      transition: transform .24s var(--ease), opacity .24s var(--ease);
+    }
+
+    .sheet.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    .grabber {
+      width: 48px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.25);
+      margin: 10px auto 4px;
+    }
+
+    .sheet-top {
+      padding: 12px 16px 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+
+    .sheet-title h2 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -.045em;
+    }
+
+    .sheet-title p {
+      margin: 5px 0 0;
+      color: var(--soft);
+      font-size: 13px;
+    }
+
+    .search {
+      padding: 0 16px 12px;
+    }
+
+    .search input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.14);
+      outline: none;
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .zone-list {
+      overflow: auto;
+      padding: 0 10px 12px;
+    }
+
+    .zone-option {
+      width: 100%;
+      text-align: left;
+      padding: 13px 12px;
+      margin: 4px 0;
+      border-radius: 22px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      background: transparent;
+      transition: background .16s var(--ease);
+    }
+
+    .zone-option:hover {
+      background: rgba(255,255,255,.10);
+    }
+
+    .zone-option strong {
+      display: block;
+      font-size: 15px;
+      letter-spacing: -.02em;
+    }
+
+    .zone-option span {
+      display: block;
+      margin-top: 4px;
+      color: var(--soft);
+      font-size: 12px;
+    }
+
+    .zone-option em {
+      align-self: center;
+      font-style: normal;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 110;
+      right: 16px;
+      bottom: 18px;
+      max-width: min(420px, calc(100vw - 32px));
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(4,7,16,.76);
+      border: 1px solid rgba(255,255,255,.16);
+      color: rgba(255,255,255,.84);
+      box-shadow: 0 18px 60px rgba(0,0,0,.36);
+      backdrop-filter: blur(24px);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity .2s var(--ease), transform .2s var(--ease);
+      font-size: 13px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      :root {
+        --city: 210px;
+        --cell: 58px;
+      }
+
+      .nav,
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .brand,
+      .actions,
+      .date-wrap,
+      .right-tools {
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .brand {
+        text-align: center;
+      }
+
+      .island {
+        width: 100%;
+      }
+
+      .hint {
+        order: -1;
+      }
+    }
+
+    @media (max-width: 620px) {
+      :root {
+        --city: 146px;
+        --cell: 54px;
+        --row: 68px;
+      }
+
+      .app {
+        width: calc(100vw - 14px);
+        padding-top: 10px;
+      }
+
+      .brand p {
+        font-size: 12px;
+      }
+
+      .island {
+        border-radius: 28px;
+      }
+
+      .island .chip {
+        display: none;
+      }
+
+      .toolbar {
+        border-radius: 26px;
+      }
+
+      .left-head {
+        padding: 12px 10px;
+      }
+
+      .left-head span {
+        display: inline-flex;
+        font-size: 11px;
+        padding: 5px 7px;
+      }
+
+      .city-card {
+        padding: 9px 8px;
+        gap: 8px;
+      }
+
+      .city-glow {
+        display: none;
+      }
+
+      .city-name {
+        font-size: 14px;
+      }
+
+      .zone-name {
+        font-size: 11px;
+      }
+
+      .current-time {
+        font-size: 11px;
+      }
+
+      .city-actions {
+        display: none;
+      }
+
+      .time-stack .num {
+        font-size: 21px;
+      }
+
+      .cell .time-stack .num {
+        font-size: 19px;
+      }
+
+      .cell .time-stack .ampm {
+        font-size: 8px;
+      }
+
+      .sheet {
+        width: calc(100vw - 12px);
+        border-radius: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="nav">
+      <section class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Glass Time</h1>
+          <p>Conversor visual de fecha y hora por zonas horarias.</p>
+        </div>
+      </section>
+
+      <section class="island" aria-live="polite">
+        <div>
+          <small>Hora seleccionada</small>
+          <strong id="selectedSummary">—</strong>
+        </div>
+        <div class="chip" id="selectedDateChip">—</div>
+      </section>
+
+      <section class="actions">
+        <button class="glass-btn" id="nowBtn">Ahora</button>
+        <button class="glass-btn" id="copyBtn">Copiar</button>
+        <div class="calendar-menu" id="calendarMenu">
+          <button class="glass-btn calendar-plus" id="calendarMenuBtn" aria-expanded="false">＋ Guardar</button>
+          <div class="calendar-popover" id="calendarPopover" role="menu">
+            <div class="calendar-title-field">
+              <label for="eventTitleInput">Título</label>
+              <input id="eventTitleInput" type="text" placeholder="Ej. Weekly sync, llamada, recordatorio..." />
+            </div>
+            <button class="calendar-choice" id="googleBtn" role="menuitem">
+              <span class="choice-icon">G</span>
+              <span>
+                <strong>Google Calendar</strong>
+                <em>Abre el evento listo para guardar</em>
+              </span>
+            </button>
+            <button class="calendar-choice" id="icsBtn" role="menuitem">
+              <span class="choice-icon">⌁</span>
+              <span>
+                <strong>Calendario nativo</strong>
+                <em>Apple Calendar / Outlook / .ics</em>
+              </span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </header>
+
+    <section class="toolbar">
+      <div class="date-wrap">
+        <button class="glass-btn" id="prevBtn">← Día</button>
+        <div class="date-pill">
+          <span>Fecha base</span>
+          <input id="dateInput" type="date" />
+        </div>
+        <button class="glass-btn" id="nextBtn">Día →</button>
+      </div>
+
+      <div class="hint">Toca una ciudad para cambiar su timezone · toca una hora para convertir.</div>
+
+      <div class="right-tools">
+        <button class="glass-btn" id="addBtn">+ Ciudad</button>
+        <button class="glass-btn" id="resetBtn">Reset</button>
+      </div>
+    </section>
+
+    <section class="board" aria-label="Conversor visual">
+      <div class="header-row">
+        <div class="left-head">
+          <strong id="baseLabel">Base</strong>
+          <span id="durationLabel">Seleccionado · 1h</span>
+        </div>
+        <div class="scroll" id="headScroll">
+          <div class="hours" id="hourHeader"></div>
+        </div>
+      </div>
+
+      <div id="rows"></div>
+    </section>
+  </main>
+
+  <div class="sheet-backdrop" id="backdrop"></div>
+
+  <section class="sheet" id="sheet" aria-modal="true" role="dialog">
+    <div class="grabber"></div>
+    <div class="sheet-top">
+      <div class="sheet-title">
+        <h2 id="sheetTitle">Cambiar timezone</h2>
+        <p id="sheetSubtitle">Busca una ciudad o zona horaria.</p>
+      </div>
+      <button class="glass-btn" id="closeSheetBtn">Cerrar</button>
+    </div>
+    <div class="search">
+      <input id="zoneSearch" type="search" placeholder="Buscar: Madrid, Sydney, UTC, Bali..." />
+    </div>
+    <div class="zone-list" id="zoneList"></div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = "glass-time-v1-simple";
+
+    const ZONE_LIBRARY = [
+      ["Madrid", "Europe/Madrid"],
+      ["Barcelona", "Europe/Madrid"],
+      ["Las Palmas", "Atlantic/Canary"],
+      ["London", "Europe/London"],
+      ["Lisbon", "Europe/Lisbon"],
+      ["Paris", "Europe/Paris"],
+      ["Berlin", "Europe/Berlin"],
+      ["Amsterdam", "Europe/Amsterdam"],
+      ["Rome", "Europe/Rome"],
+      ["Dublin", "Europe/Dublin"],
+      ["Sydney", "Australia/Sydney"],
+      ["Melbourne", "Australia/Melbourne"],
+      ["Brisbane", "Australia/Brisbane"],
+      ["Perth", "Australia/Perth"],
+      ["Auckland", "Pacific/Auckland"],
+      ["Bali", "Asia/Makassar"],
+      ["Singapore", "Asia/Singapore"],
+      ["Bangkok", "Asia/Bangkok"],
+      ["Tokyo", "Asia/Tokyo"],
+      ["Seoul", "Asia/Seoul"],
+      ["Dubai", "Asia/Dubai"],
+      ["Mumbai", "Asia/Kolkata"],
+      ["Hong Kong", "Asia/Hong_Kong"],
+      ["Shanghai", "Asia/Shanghai"],
+      ["New York", "America/New_York"],
+      ["Los Angeles", "America/Los_Angeles"],
+      ["San Francisco", "America/Los_Angeles"],
+      ["Chicago", "America/Chicago"],
+      ["Denver", "America/Denver"],
+      ["Mexico City", "America/Mexico_City"],
+      ["Costa Rica", "America/Costa_Rica"],
+      ["Nicaragua", "America/Managua"],
+      ["Lima", "America/Lima"],
+      ["Bogotá", "America/Bogota"],
+      ["Buenos Aires", "America/Argentina/Buenos_Aires"],
+      ["São Paulo", "America/Sao_Paulo"],
+      ["Toronto", "America/Toronto"],
+      ["Vancouver", "America/Vancouver"],
+      ["UTC", "UTC"]
+    ];
+
+    const COLORS = ["#9fd7ff", "#d9b8ff", "#bdf7d2", "#ffd2b7", "#ffb5df", "#c6d4ff"];
+
+    const state = {
+      zones: [],
+      dateISO: "",
+      selectedStartSlot: 18,
+      selectedEndSlot: 20,
+      cursorSlot: 18,
+      isSelecting: false,
+      dragAnchorSlot: null,
+      calendarMenuOpen: false,
+      pickerMode: "edit",
+      editingZoneId: null
+    };
+
+    const els = {
+      selectedSummary: document.getElementById("selectedSummary"),
+      selectedDateChip: document.getElementById("selectedDateChip"),
+      dateInput: document.getElementById("dateInput"),
+      prevBtn: document.getElementById("prevBtn"),
+      nextBtn: document.getElementById("nextBtn"),
+      nowBtn: document.getElementById("nowBtn"),
+      copyBtn: document.getElementById("copyBtn"),
+      calendarMenu: document.getElementById("calendarMenu"),
+      calendarMenuBtn: document.getElementById("calendarMenuBtn"),
+      calendarPopover: document.getElementById("calendarPopover"),
+      eventTitleInput: document.getElementById("eventTitleInput"),
+      googleBtn: document.getElementById("googleBtn"),
+      icsBtn: document.getElementById("icsBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      addBtn: document.getElementById("addBtn"),
+      baseLabel: document.getElementById("baseLabel"),
+      durationLabel: document.getElementById("durationLabel"),
+      headScroll: document.getElementById("headScroll"),
+      hourHeader: document.getElementById("hourHeader"),
+      rows: document.getElementById("rows"),
+      backdrop: document.getElementById("backdrop"),
+      sheet: document.getElementById("sheet"),
+      sheetTitle: document.getElementById("sheetTitle"),
+      sheetSubtitle: document.getElementById("sheetSubtitle"),
+      closeSheetBtn: document.getElementById("closeSheetBtn"),
+      zoneSearch: document.getElementById("zoneSearch"),
+      zoneList: document.getElementById("zoneList"),
+      toast: document.getElementById("toast")
+    };
+
+    function id() {
+      return crypto?.randomUUID?.() || "id-" + Math.random().toString(36).slice(2);
+    }
+
+    function pad(n) {
+      return String(n).padStart(2, "0");
+    }
+
+    function escapeHTML(str) {
+      return String(str).replace(/[&<>"']/g, c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[c]));
+    }
+
+    function dateFromISO(iso) {
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d));
+    }
+
+    function addDays(iso, amount) {
+      const d = dateFromISO(iso);
+      d.setUTCDate(d.getUTCDate() + amount);
+      return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+    }
+
+    function getParts(date, timeZone) {
+      const formatter = new Intl.DateTimeFormat("en-GB", {
+        timeZone,
+        weekday: "short",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+      });
+
+      const out = {};
+      formatter.formatToParts(date).forEach(part => {
+        if (part.type !== "literal") out[part.type] = part.value;
+      });
+
+      return {
+        weekday: out.weekday,
+        year: Number(out.year),
+        month: Number(out.month),
+        day: Number(out.day),
+        hour: Number(out.hour),
+        minute: Number(out.minute)
+      };
+    }
+
+    function todayInZone(timeZone) {
+      const p = getParts(new Date(), timeZone);
+      return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+    }
+
+    function zonedTimeToUtc(dateISO, hour, minute, timeZone) {
+      const [year, month, day] = dateISO.split("-").map(Number);
+      let guess = Date.UTC(year, month - 1, day, hour, minute, 0);
+
+      for (let i = 0; i < 4; i++) {
+        const p = getParts(new Date(guess), timeZone);
+        const localAsUTC = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, 0);
+        guess -= localAsUTC - guess;
+      }
+
+      return new Date(guess);
+    }
+
+    function offsetText(date, timeZone) {
+      const p = getParts(date, timeZone);
+      const localAsUTC = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
+      const mins = Math.round((localAsUTC - date.getTime()) / 60000);
+      const sign = mins >= 0 ? "+" : "-";
+      const abs = Math.abs(mins);
+      const h = Math.floor(abs / 60);
+      const m = abs % 60;
+      return `GMT${sign}${h}${m ? ":" + pad(m) : ""}`;
+    }
+
+    function fmtHour(hour, minute = 0) {
+      return `${pad(hour)}:${pad(minute)}`;
+    }
+
+    function normalizedHour(hour) {
+      return ((hour % 24) + 24) % 24;
+    }
+
+    function hour12(hour) {
+      const h = normalizedHour(hour);
+      return h % 12 || 12;
+    }
+
+    function meridiem(hour) {
+      return normalizedHour(hour) >= 12 ? "PM" : "AM";
+    }
+
+    function compactHourHTML(hour) {
+      return `<span class="time-stack"><span class="num">${hour12(hour)}</span><span class="ampm">${meridiem(hour)}</span></span>`;
+    }
+
+    function fmtDisplayTime(hour, minute = 0) {
+      const suffix = meridiem(hour);
+      if (minute === 0) return `${hour12(hour)}${suffix}`;
+      return `${hour12(hour)}:${pad(minute)}${suffix}`;
+    }
+
+    function slotHour(slot) {
+      return Math.floor(slot / 2);
+    }
+
+    function slotMinute(slot) {
+      return slot % 2 ? 30 : 0;
+    }
+
+    function fmtSlot(slot) {
+      return fmtDisplayTime(slotHour(slot), slotMinute(slot));
+    }
+
+    function clampSlot(slot) {
+      return Math.max(0, Math.min(48, Number(slot)));
+    }
+
+    function normalizedRange() {
+      const start = Math.min(state.selectedStartSlot, state.selectedEndSlot);
+      const end = Math.max(state.selectedStartSlot, state.selectedEndSlot);
+      return {
+        start,
+        end: Math.max(start + 1, end),
+        durationSlots: Math.max(1, end - start)
+      };
+    }
+
+    function durationText(slots) {
+      const mins = slots * 30;
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      if (h && m) return `${h}h ${m}m`;
+      if (h) return `${h}h`;
+      return `${m}m`;
+    }
+
+    function slotFromPointer(event, cell) {
+      const rect = cell.getBoundingClientRect();
+      const ratio = (event.clientX - rect.left) / Math.max(1, rect.width);
+      const hour = Number(cell.dataset.hour);
+      return clampSlot(hour * 2 + (ratio >= .5 ? 1 : 0));
+    }
+
+    function fmtDate(p) {
+      return `${p.weekday} ${pad(p.day)}/${pad(p.month)}`;
+    }
+
+    function baseZone() {
+      return state.zones[0];
+    }
+
+    function moveZoneToBase(zoneId, preserveCurrentInstant = true) {
+      const index = state.zones.findIndex(z => z.id === zoneId);
+      if (index <= 0) return;
+      const instant = preserveCurrentInstant ? selectedInstant() : null;
+      const duration = normalizedRange().durationSlots;
+      const [zone] = state.zones.splice(index, 1);
+      state.zones.unshift(zone);
+      if (instant) {
+        const p = getParts(instant, zone.timeZone);
+        const startSlot = p.hour * 2 + (p.minute >= 30 ? 1 : 0);
+        state.dateISO = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+        state.selectedStartSlot = startSlot;
+        state.selectedEndSlot = clampSlot(startSlot + duration);
+        state.cursorSlot = startSlot;
+      }
+    }
+
+    function selectedInstant() {
+      const { start } = normalizedRange();
+      return zonedTimeToUtc(state.dateISO, slotHour(start), slotMinute(start), baseZone().timeZone);
+    }
+
+    function selectedEndInstant() {
+      const { end } = normalizedRange();
+      return zonedTimeToUtc(state.dateISO, slotHour(end), slotMinute(end), baseZone().timeZone);
+    }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        zones: state.zones,
+        dateISO: state.dateISO,
+        selectedStartSlot: state.selectedStartSlot,
+        selectedEndSlot: state.selectedEndSlot
+      }));
+    }
+
+    function load() {
+      const fallback = [
+        { id: id(), label: "Sydney", timeZone: "Australia/Sydney" },
+        { id: id(), label: "Madrid", timeZone: "Europe/Madrid" },
+        { id: id(), label: "New York", timeZone: "America/New_York" },
+        { id: id(), label: "Bali", timeZone: "Asia/Makassar" }
+      ];
+
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        state.zones = parsed?.zones?.length ? parsed.zones : fallback;
+        state.dateISO = parsed?.dateISO || todayInZone(state.zones[0].timeZone);
+        if (Number.isInteger(parsed?.selectedStartSlot) && Number.isInteger(parsed?.selectedEndSlot)) {
+          state.selectedStartSlot = parsed.selectedStartSlot;
+          state.selectedEndSlot = parsed.selectedEndSlot;
+        } else {
+          const legacyHour = Number.isInteger(parsed?.selectedHour) ? parsed.selectedHour : 9;
+          state.selectedStartSlot = legacyHour * 2;
+          state.selectedEndSlot = legacyHour * 2 + 2;
+        }
+        state.cursorSlot = state.selectedStartSlot;
+      } catch {
+        state.zones = fallback;
+        state.dateISO = todayInZone(state.zones[0].timeZone);
+        state.selectedStartSlot = 18;
+        state.selectedEndSlot = 20;
+        state.cursorSlot = 18;
+      }
+    }
+
+    function render() {
+      const keepScroll = els.headScroll ? els.headScroll.scrollLeft : 0;
+      els.dateInput.value = state.dateISO;
+      els.baseLabel.textContent = `Base · ${baseZone().label}`;
+      renderHeader();
+      renderRows();
+      renderIsland();
+      save();
+      bindScrollSync();
+      restoreScroll(keepScroll);
+    }
+
+    function restoreScroll(left) {
+      const scrollers = [els.headScroll, ...document.querySelectorAll(".body-scroll")];
+      scrollers.forEach(scroller => {
+        scroller.scrollLeft = left;
+      });
+    }
+
+    function renderHeader() {
+      const base = baseZone();
+      let html = "";
+
+      for (let h = 0; h < 24; h++) {
+        const instant = zonedTimeToUtc(state.dateISO, h, 0, base.timeZone);
+        const p = getParts(instant, base.timeZone);
+
+        html += `
+          <div class="hour-head ${h === slotHour(state.cursorSlot) ? "cursor" : ""}" data-hour="${h}">
+            <span class="cursor-band" aria-hidden="true"></span>
+            <div class="h">${compactHourHTML(p.hour)}</div>
+            <div class="d">${fmtDate(p)}</div>
+          </div>
+        `;
+      }
+
+      els.hourHeader.innerHTML = html;
+    }
+
+    function renderRows() {
+      const base = baseZone();
+      const now = new Date();
+      const baseNow = getParts(now, base.timeZone);
+      const isToday = `${baseNow.year}-${pad(baseNow.month)}-${pad(baseNow.day)}` === state.dateISO;
+
+      els.rows.innerHTML = state.zones.map((zone, index) => {
+        const current = getParts(now, zone.timeZone);
+        const offset = offsetText(now, zone.timeZone);
+        const color = COLORS[index % COLORS.length];
+
+        const cells = Array.from({ length: 24 }, (_, h) => {
+          const instant = zonedTimeToUtc(state.dateISO, h, 0, base.timeZone);
+          const p = getParts(instant, zone.timeZone);
+          const localISO = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+          const dayShift = localISO < state.dateISO ? "-1" : localISO > state.dateISO ? "+1" : "";
+          const dayShiftLabel = dayShift === "+1" ? "Día +1" : dayShift === "-1" ? "Día -1" : "";
+          const range = normalizedRange();
+          const cellStart = h * 2;
+          const cellEnd = cellStart + 2;
+          const overlapStart = Math.max(cellStart, range.start);
+          const overlapEnd = Math.min(cellEnd, range.end);
+          const selected = overlapEnd > overlapStart;
+          const selLeft = selected ? (overlapStart - cellStart) * 50 : 0;
+          const selWidth = selected ? (overlapEnd - overlapStart) * 50 : 0;
+          const startHalf = selected && selLeft > 0;
+          const endHalf = selected && (selLeft + selWidth) < 100;
+          const night = p.hour < 6 || p.hour >= 22;
+          const morning = p.hour >= 6 && p.hour < 10;
+          const work = p.hour >= 10 && p.hour < 18;
+          const evening = p.hour >= 18 && p.hour < 22;
+          const nowClass = isToday && h === baseNow.hour ? "now" : "";
+          const cursor = h === slotHour(state.cursorSlot);
+
+          return `
+            <div class="cell ${selected ? "selected" : ""} ${startHalf ? "start-half" : ""} ${endHalf ? "end-half" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${dayShift ? "day-shift" : ""} ${nowClass}"
+              style="--sel-left:${selLeft}; --sel-width:${selWidth};"
+              data-hour="${h}"
+              data-shift="${dayShift}"
+              data-shift-label="${dayShiftLabel}"
+              title="${zone.label}: ${fmtDate(p)} ${fmtDisplayTime(p.hour)}">
+              <span class="cursor-band" aria-hidden="true"></span>
+              <span class="t">${compactHourHTML(p.hour)}</span>
+            </div>
+          `;
+        }).join("");
+
+        return `
+          <div class="time-row" data-zone-id="${zone.id}">
+            <div class="city-card ${index === 0 ? "anchor" : ""}" data-action="edit-zone" style="--zone-color:${color}">
+              <div class="city-glow" style="background:linear-gradient(180deg, ${color}, rgba(255,255,255,.65))"></div>
+              <div class="city-main">
+                <div class="city-line">
+                  <div class="city-name">${escapeHTML(zone.label)}</div>
+                  <div class="offset">${offset}</div>
+                </div>
+                <div class="zone-name">${escapeHTML(zone.timeZone)}</div>
+                <div class="current-time">Ahora · ${fmtDate(current)} · ${fmtDisplayTime(current.hour, current.minute)}</div>
+              </div>
+              <div class="city-actions">
+                ${index > 0 ? `<button class="mini-btn make-base" title="Hacer base">⌖</button>` : ""}
+                ${state.zones.length > 1 ? `<button class="mini-btn remove-zone" title="Eliminar">×</button>` : ""}
+              </div>
+            </div>
+            <div class="scroll body-scroll">
+              <div class="hours">${cells}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderIsland() {
+      const startInstant = selectedInstant();
+      const endInstant = selectedEndInstant();
+      const base = baseZone();
+      const baseStart = getParts(startInstant, base.timeZone);
+      const baseEnd = getParts(endInstant, base.timeZone);
+      const { durationSlots } = normalizedRange();
+      const duration = durationText(durationSlots);
+      const baseRange = `${fmtDisplayTime(baseStart.hour, baseStart.minute)}–${fmtDisplayTime(baseEnd.hour, baseEnd.minute)}`;
+
+      els.selectedSummary.textContent = `${duration} seleccionadas`;
+      els.selectedDateChip.textContent = `${base.label} · ${fmtDate(baseStart)} · ${baseRange}`;
+      els.durationLabel.textContent = `Seleccionado · ${duration}`;
+    }
+
+    function bindScrollSync() {
+      const scrollers = [els.headScroll, ...document.querySelectorAll(".body-scroll")];
+      let syncing = false;
+
+      scrollers.forEach(scroller => {
+        scroller.onscroll = () => {
+          if (syncing) return;
+          syncing = true;
+          scrollers.forEach(other => {
+            if (other !== scroller) other.scrollLeft = scroller.scrollLeft;
+          });
+          requestAnimationFrame(() => syncing = false);
+        };
+      });
+    }
+
+    function openPicker(mode, zoneId = null) {
+      state.pickerMode = mode;
+      state.editingZoneId = zoneId;
+      const zone = state.zones.find(z => z.id === zoneId);
+
+      els.sheetTitle.textContent = mode === "add" ? "Añadir ciudad" : `Cambiar ${zone?.label || "ciudad"}`;
+      els.sheetSubtitle.textContent = mode === "add"
+        ? "Elige una zona horaria para añadirla a la timeline."
+        : "Toca una opción para reemplazar esta ciudad.";
+
+      els.zoneSearch.value = "";
+      renderZoneOptions("");
+      els.backdrop.classList.add("open");
+      els.sheet.classList.add("open");
+      setTimeout(() => els.zoneSearch.focus(), 80);
+    }
+
+    function closePicker() {
+      els.backdrop.classList.remove("open");
+      els.sheet.classList.remove("open");
+      state.editingZoneId = null;
+    }
+
+    function renderZoneOptions(query) {
+      const q = query.trim().toLowerCase();
+      const now = new Date();
+
+      const matches = ZONE_LIBRARY.filter(([label, timeZone]) => {
+        const text = `${label} ${timeZone}`.toLowerCase();
+        return !q || text.includes(q);
+      });
+
+      els.zoneList.innerHTML = matches.map(([label, timeZone]) => {
+        const p = getParts(now, timeZone);
+        return `
+          <button class="zone-option" data-label="${escapeHTML(label)}" data-timezone="${escapeHTML(timeZone)}">
+            <span>
+              <strong>${escapeHTML(label)}</strong>
+              <span>${escapeHTML(timeZone)} · Ahora ${fmtDisplayTime(p.hour, p.minute)}</span>
+            </span>
+            <em>${offsetText(now, timeZone)}</em>
+          </button>
+        `;
+      }).join("");
+    }
+
+    function chooseZone(label, timeZone) {
+      if (state.pickerMode === "add") {
+        const newZone = { id: id(), label, timeZone };
+        state.zones.unshift(newZone);
+        state.dateISO = todayInZone(newZone.timeZone);
+        state.cursorSlot = state.selectedStartSlot;
+        showToast(`${label} añadido como base.`);
+      } else {
+        const zone = state.zones.find(z => z.id === state.editingZoneId);
+        if (zone) {
+          const editedId = zone.id;
+          zone.label = label;
+          zone.timeZone = timeZone;
+          moveZoneToBase(editedId, true);
+          showToast(`${label} seleccionado como base.`);
+        }
+      }
+
+      closePicker();
+      render();
+    }
+
+    function focusHour() {
+      const target = Math.max(0, slotHour(normalizedRange().start) * 64 - 180);
+      els.headScroll.scrollTo({ left: target, behavior: "smooth" });
+    }
+
+    function jumpNow() {
+      const base = baseZone();
+      const p = getParts(new Date(), base.timeZone);
+      state.dateISO = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+      const currentSlot = p.hour * 2 + (p.minute >= 30 ? 1 : 0);
+      state.selectedStartSlot = currentSlot;
+      state.selectedEndSlot = clampSlot(currentSlot + 2);
+      state.cursorSlot = currentSlot;
+      render();
+      focusHour();
+    }
+
+
+    function selectionLines() {
+      const startInstant = selectedInstant();
+      const endInstant = selectedEndInstant();
+      return state.zones.map(zone => {
+        const start = getParts(startInstant, zone.timeZone);
+        const end = getParts(endInstant, zone.timeZone);
+        return `${zone.label}: ${fmtDate(start)} ${fmtDisplayTime(start.hour, start.minute)}–${fmtDisplayTime(end.hour, end.minute)} (${zone.timeZone})`;
+      });
+    }
+
+    function googleDate(date) {
+      return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    }
+
+    function calendarTitle() {
+      const title = els.eventTitleInput.value.trim();
+      if (title) return title;
+      const { start, end } = normalizedRange();
+      return `Recordatorio · ${baseZone().label} ${fmtSlot(start)}–${fmtSlot(end)}`;
+    }
+
+    function calendarDetails() {
+      return [
+        "Creado desde Glass Time.",
+        "",
+        "Conversión:",
+        ...selectionLines()
+      ].join("\n");
+    }
+
+    function openGoogleCalendar() {
+      const start = selectedInstant();
+      const end = selectedEndInstant();
+      const url = new URL("https://calendar.google.com/calendar/render");
+      url.searchParams.set("action", "TEMPLATE");
+      url.searchParams.set("text", calendarTitle());
+      url.searchParams.set("dates", `${googleDate(start)}/${googleDate(end)}`);
+      url.searchParams.set("details", calendarDetails());
+      url.searchParams.set("ctz", baseZone().timeZone);
+      window.open(url.toString(), "_blank", "noopener,noreferrer");
+      showToast("Abriendo Google Calendar.");
+    }
+
+    function escapeICS(text) {
+      return String(text)
+        .replace(/\\/g, "\\\\")
+        .replace(/;/g, "\\;")
+        .replace(/,/g, "\\,")
+        .replace(/\n/g, "\\n");
+    }
+
+    function downloadICS() {
+      const start = selectedInstant();
+      const end = selectedEndInstant();
+      const stamp = new Date();
+      const uid = `${Date.now()}-${Math.random().toString(36).slice(2)}@glass-time`;
+      const ics = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Glass Time//Visual Timezone Converter//ES",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "BEGIN:VEVENT",
+        `UID:${uid}`,
+        `DTSTAMP:${googleDate(stamp)}`,
+        `DTSTART:${googleDate(start)}`,
+        `DTEND:${googleDate(end)}`,
+        `SUMMARY:${escapeICS(calendarTitle())}`,
+        `DESCRIPTION:${escapeICS(calendarDetails())}`,
+        "BEGIN:VALARM",
+        "ACTION:DISPLAY",
+        "DESCRIPTION:Recordatorio",
+        "TRIGGER:-PT15M",
+        "END:VALARM",
+        "END:VEVENT",
+        "END:VCALENDAR"
+      ].join("\r\n");
+
+      const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `glass-time-${state.dateISO}-${pad(slotHour(normalizedRange().start))}${pad(slotMinute(normalizedRange().start))}.ics`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("Archivo .ics creado para Calendario/Outlook/Apple.");
+    }
+
+    function copySelection() {
+      const text = selectionLines().join("\n");
+      navigator.clipboard?.writeText(text).then(
+        () => showToast("Hora copiada."),
+        () => showToast(text)
+      );
+    }
+
+    function reset() {
+      localStorage.removeItem(STORAGE_KEY);
+      load();
+      render();
+      focusHour();
+      showToast("Reset hecho.");
+    }
+
+    function setCalendarMenu(open) {
+      state.calendarMenuOpen = open;
+      els.calendarMenu.classList.toggle("open", open);
+      els.calendarMenuBtn.setAttribute("aria-expanded", String(open));
+      if (open) {
+        const { start, end } = normalizedRange();
+        if (!els.eventTitleInput.value.trim()) {
+          els.eventTitleInput.value = `Recordatorio · ${baseZone().label} ${fmtSlot(start)}–${fmtSlot(end)}`;
+          els.eventTitleInput.select();
+        }
+        setTimeout(() => els.eventTitleInput.focus(), 50);
+      }
+    }
+
+    function toggleCalendarMenu() {
+      setCalendarMenu(!state.calendarMenuOpen);
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => els.toast.classList.remove("show"), 2200);
+    }
+
+    function updateCursorDOM(slot) {
+      state.cursorSlot = clampSlot(slot);
+      const hour = slotHour(state.cursorSlot);
+      document.querySelectorAll(".hour-head.cursor, .cell.cursor").forEach(el => el.classList.remove("cursor"));
+      document.querySelectorAll(`.hour-head[data-hour="${hour}"], .cell[data-hour="${hour}"]`).forEach(el => el.classList.add("cursor"));
+    }
+
+    function setRangeFromSlots(anchorSlot, currentSlot) {
+      const a = clampSlot(anchorSlot);
+      const b = clampSlot(currentSlot);
+      const start = Math.min(a, b);
+      const end = Math.max(a, b) + 1;
+      state.selectedStartSlot = start;
+      state.selectedEndSlot = Math.min(48, end);
+      state.cursorSlot = b;
+      render();
+    }
+
+    function bindEvents() {
+      els.prevBtn.addEventListener("click", () => {
+        state.dateISO = addDays(state.dateISO, -1);
+        render();
+      });
+
+      els.nextBtn.addEventListener("click", () => {
+        state.dateISO = addDays(state.dateISO, 1);
+        render();
+      });
+
+      els.dateInput.addEventListener("change", () => {
+        state.dateISO = els.dateInput.value;
+        render();
+      });
+
+      els.nowBtn.addEventListener("click", jumpNow);
+      els.copyBtn.addEventListener("click", copySelection);
+      els.calendarMenuBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        toggleCalendarMenu();
+      });
+      els.googleBtn.addEventListener("click", () => {
+        setCalendarMenu(false);
+        openGoogleCalendar();
+      });
+      els.icsBtn.addEventListener("click", () => {
+        setCalendarMenu(false);
+        downloadICS();
+      });
+      els.resetBtn.addEventListener("click", reset);
+      els.addBtn.addEventListener("click", () => openPicker("add"));
+
+      els.headScroll.addEventListener("pointermove", event => {
+        const head = event.target.closest(".hour-head");
+        if (!head || state.isSelecting) return;
+        const h = Number(head.dataset.hour);
+        updateCursorDOM(h * 2);
+      });
+
+      els.headScroll.addEventListener("pointerdown", event => {
+        const head = event.target.closest(".hour-head");
+        if (!head) return;
+        const slot = Number(head.dataset.hour) * 2;
+        state.isSelecting = true;
+        state.dragAnchorSlot = slot;
+        setRangeFromSlots(slot, slot + 1);
+      });
+
+      els.rows.addEventListener("pointermove", event => {
+        const cell = event.target.closest(".cell");
+        if (!cell) return;
+        const slot = slotFromPointer(event, cell);
+        if (state.isSelecting) {
+          setRangeFromSlots(state.dragAnchorSlot, slot);
+        } else {
+          updateCursorDOM(slot);
+        }
+      });
+
+      els.rows.addEventListener("pointerdown", event => {
+        const cell = event.target.closest(".cell");
+        if (!cell) return;
+        const slot = slotFromPointer(event, cell);
+        state.isSelecting = true;
+        state.dragAnchorSlot = slot;
+        setRangeFromSlots(slot, slot);
+      });
+
+      window.addEventListener("pointerup", () => {
+        state.isSelecting = false;
+        state.dragAnchorSlot = null;
+      });
+
+      els.rows.addEventListener("click", event => {
+        const row = event.target.closest(".time-row");
+        if (!row) return;
+
+        if (event.target.closest(".remove-zone")) {
+          event.stopPropagation();
+          state.zones = state.zones.filter(z => z.id !== row.dataset.zoneId);
+          render();
+          return;
+        }
+
+        if (event.target.closest(".make-base")) {
+          event.stopPropagation();
+          const i = state.zones.findIndex(z => z.id === row.dataset.zoneId);
+          if (i > 0) {
+            const zone = state.zones[i];
+            moveZoneToBase(zone.id, true);
+            render();
+            showToast(`${zone.label} ahora es la base.`);
+          }
+          return;
+        }
+
+        const cell = event.target.closest(".cell");
+        if (cell) {
+          return;
+        }
+
+        const city = event.target.closest(".city-card");
+        if (city) {
+          openPicker("edit", row.dataset.zoneId);
+        }
+      });
+
+      els.zoneSearch.addEventListener("input", () => renderZoneOptions(els.zoneSearch.value));
+
+      els.zoneList.addEventListener("click", event => {
+        const option = event.target.closest(".zone-option");
+        if (!option) return;
+        chooseZone(option.dataset.label, option.dataset.timezone);
+      });
+
+      els.closeSheetBtn.addEventListener("click", closePicker);
+      els.backdrop.addEventListener("click", closePicker);
+
+      document.addEventListener("click", event => {
+        if (!event.target.closest(".calendar-menu")) setCalendarMenu(false);
+      });
+
+      window.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+          closePicker();
+          setCalendarMenu(false);
+        }
+        if (event.target.matches("input")) return;
+
+        if (event.key === "ArrowLeft") {
+          const duration = normalizedRange().durationSlots;
+          const nextStart = Math.max(0, normalizedRange().start - 1);
+          state.selectedStartSlot = nextStart;
+          state.selectedEndSlot = Math.min(48, nextStart + duration);
+          state.cursorSlot = nextStart;
+          render();
+          focusHour();
+        }
+
+        if (event.key === "ArrowRight") {
+          const duration = normalizedRange().durationSlots;
+          const nextStart = Math.min(47, normalizedRange().start + 1);
+          state.selectedStartSlot = nextStart;
+          state.selectedEndSlot = Math.min(48, nextStart + duration);
+          state.cursorSlot = nextStart;
+          render();
+          focusHour();
+        }
+      });
+    }
+
+    load();
+    bindEvents();
+    render();
+    setTimeout(focusHour, 160);
+  </script>
+</body>
+</html>
