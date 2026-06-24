@@ -32,6 +32,7 @@ const els = {
   resetBtn: document.getElementById("resetBtn"),
   addBtn: document.getElementById("addBtn"),
   baseLabel: document.getElementById("baseLabel"),
+  baseDate: document.getElementById("baseDate"),
   durationLabel: document.getElementById("durationLabel"),
   headScroll: document.getElementById("headScroll"),
   hourHeader: document.getElementById("hourHeader"),

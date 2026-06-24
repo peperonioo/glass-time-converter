@@ -10,6 +10,12 @@ function render() {
   const keepScroll = els.headScroll ? els.headScroll.scrollLeft : 0;
   els.dateInput.value = state.dateISO;
   els.baseLabel.textContent = `Base · ${baseZone().label}`;
+  // Always-visible base date (the timeline header date can scroll out of view).
+  const baseInstant = zonedTimeToUtc(state.dateISO, 12, 0, baseZone().timeZone);
+  els.baseDate.textContent = new Intl.DateTimeFormat("es-ES", {
+    weekday: "short", day: "numeric", month: "short", year: "numeric",
+    timeZone: baseZone().timeZone
+  }).format(baseInstant);
   renderHeader();
   renderRows();
   renderIsland();
