@@ -2,6 +2,22 @@
 
 All notable changes to Glass Time.
 
+## [0.9.3] — 2026-06-25
+
+### Fixed — mobile polish
+
+- **Lateral scroll FPS.** The drifting aurora forced every glass panel's
+  backdrop-filter to recompute each frame; on phones the aurora is now static
+  (still pretty) and the band shimmer/breathe + logo float are paused. The
+  day-pin update is throttled to one rAF per frame while row-sync stays
+  immediate. Backdrop blur is lighter on mobile.
+- **Long-press** to start a touch selection is snappier (280ms → 200ms).
+- **Notch / Dynamic Island** no longer covers the logo — added
+  `env(safe-area-inset-top)` padding (needs `viewport-fit=cover`, already set).
+- **Narrower city column on mobile** (≈138px → 118px) to show more hours; the
+  GMT offset moved to the row's top-right corner so full names ("New York") fit
+  on one line, with single-line current-time and IANA.
+
 ## [0.9.2] — 2026-06-25
 
 ### Fixed — touch range selection

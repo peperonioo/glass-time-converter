@@ -49,16 +49,14 @@ function updateLiveClock() {
 
 /* Keep each scroller's day label pinned to the left edge and showing the date of
    the leftmost visible hour — so it follows the lateral scroll and flips exactly
-   when you cross a midnight boundary. */
-function updateDayPins() {
+   when you cross a midnight boundary. All scrollers share the same scrollLeft. */
+function updateDayPins(left) {
   const cw = cellWidthPx();
-  const scrollers = [els.headScroll, ...document.querySelectorAll(".body-scroll")];
-  scrollers.forEach(sc => {
-    const hoursEl = sc.querySelector(".hours");
-    const pin = hoursEl && hoursEl.querySelector(":scope > .day-pin");
-    if (!pin) return;
-    const left = sc.scrollLeft;
-    const h = Math.max(0, Math.min(23, Math.floor(left / cw + 0.001)));
+  const L = typeof left === "number" ? left : (els.headScroll ? els.headScroll.scrollLeft : 0);
+  const h = Math.max(0, Math.min(23, Math.floor(L / cw + 0.001)));
+  const xform = `translateX(${L}px)`;
+  document.querySelectorAll(".hours > .day-pin").forEach(pin => {
+    const hoursEl = pin.parentElement;
     const ref = hoursEl.querySelector(`[data-hour="${h}"]`);
     const label = ref ? ref.getAttribute("data-date") || "" : "";
     if (pin.textContent !== label) {
@@ -67,7 +65,7 @@ function updateDayPins() {
       void pin.offsetWidth; // restart the flash animation
       pin.classList.add("flip");
     }
-    pin.style.transform = `translateX(${left}px)`;
+    pin.style.transform = xform;
   });
 }
 
@@ -221,17 +219,23 @@ function applySelectionDOM() {
 function bindScrollSync() {
   const scrollers = [els.headScroll, ...document.querySelectorAll(".body-scroll")];
   let syncing = false;
+  let pinRAF = 0;
 
   scrollers.forEach(scroller => {
     scroller.onscroll = () => {
-      if (syncing) return;
-      syncing = true;
-      const left = scroller.scrollLeft;
-      scrollers.forEach(other => {
-        if (other !== scroller) other.scrollLeft = left;
-      });
-      updateDayPins();
-      requestAnimationFrame(() => { syncing = false; });
+      // Mirror scrollLeft to the other rows immediately (no trailing/desync).
+      if (!syncing) {
+        syncing = true;
+        const left = scroller.scrollLeft;
+        for (const other of scrollers) {
+          if (other !== scroller) other.scrollLeft = left;
+        }
+        syncing = false;
+      }
+      // The heavier day-pin update is throttled to once per frame.
+      if (!pinRAF) {
+        pinRAF = requestAnimationFrame(() => { pinRAF = 0; updateDayPins(); });
+      }
     };
   });
 }

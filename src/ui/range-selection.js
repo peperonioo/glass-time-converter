@@ -5,7 +5,7 @@
 /* ---------- range selection (pointer interactions) ---------- */
 
 const DRAG_THRESHOLD = 5;   // mouse/pen: px before a drag becomes a selection
-const TOUCH_HOLD_MS = 280;  // touch: hold this long (still) to enter selection mode
+const TOUCH_HOLD_MS = 200;  // touch: hold this long (still) to enter selection mode
 const TOUCH_MOVE_TOL = 10;  // touch: movement beyond this before the hold = a scroll
 
 const drag = {

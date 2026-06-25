@@ -74,14 +74,15 @@
     .app {
       width: min(1420px, calc(100vw - 24px));
       margin: 0 auto;
-      padding: 18px 0 34px;
+      /* Keep the logo clear of the notch / Dynamic Island (viewport-fit=cover). */
+      padding: calc(18px + env(safe-area-inset-top)) 0 34px;
       position: relative;
       z-index: 1;
     }
 
     .nav {
       position: sticky;
-      top: 12px;
+      top: calc(12px + env(safe-area-inset-top));
       z-index: 30;
       display: grid;
       grid-template-columns: 1fr auto 1fr;
@@ -1068,14 +1069,32 @@
 
     @media (max-width: 620px) {
       :root {
-        --city: 138px;
+        --city: 118px;
         --cell: 52px;
         --row: 66px;
       }
 
       .app {
         width: calc(100vw - 12px);
-        padding: 8px 0 24px;
+        padding: calc(8px + env(safe-area-inset-top)) 0 24px;
+      }
+
+      /* Mobile performance: keep ambient effects but stop the continuous
+         repaints that drag scrolling FPS down. !important beats the later,
+         higher-specificity animation definitions. */
+      .aurora { filter: blur(46px) saturate(130%); }
+      .aurora span { animation: none !important; }  /* static aurora => no per-frame backdrop recompute */
+      .sel-band { animation: none !important; }
+      .sel-band::before { animation: none !important; opacity: .3; }
+      .logo { animation: none !important; }
+      .scroll { -webkit-overflow-scrolling: touch; }
+      .board,
+      .island,
+      .toolbar,
+      .calendar-popover,
+      .sheet {
+        backdrop-filter: blur(16px) saturate(135%);
+        -webkit-backdrop-filter: blur(16px) saturate(135%);
       }
 
       /* Compact the whole header chrome so the timeline appears much higher. */
@@ -1164,13 +1183,24 @@
       }
 
       .city-name {
-        font-size: 14px;
+        font-size: 13px;
+        max-width: 100%;
       }
 
       /* The left panel already says "Base · …", so free the row for the name. */
       .base-tag { display: none; }
 
-      .offset { font-size: 10px; }
+      /* Offset to the top-right corner so the city name keeps the full line
+         (only the name line reserves space; time/zone lines use full width). */
+      .city-line { padding-right: 32px; }
+      .current-time, .zone-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .offset {
+        position: absolute;
+        top: 10px;
+        right: 9px;
+        margin: 0;
+        font-size: 9px;
+      }
 
       .zone-name {
         font-size: 10px;
@@ -2073,16 +2103,14 @@
 
     /* Keep each scroller's day label pinned to the left edge and showing the date of
        the leftmost visible hour — so it follows the lateral scroll and flips exactly
-       when you cross a midnight boundary. */
-    function updateDayPins() {
+       when you cross a midnight boundary. All scrollers share the same scrollLeft. */
+    function updateDayPins(left) {
       const cw = cellWidthPx();
-      const scrollers = [els.headScroll, ...document.querySelectorAll(".body-scroll")];
-      scrollers.forEach(sc => {
-        const hoursEl = sc.querySelector(".hours");
-        const pin = hoursEl && hoursEl.querySelector(":scope > .day-pin");
-        if (!pin) return;
-        const left = sc.scrollLeft;
-        const h = Math.max(0, Math.min(23, Math.floor(left / cw + 0.001)));
+      const L = typeof left === "number" ? left : (els.headScroll ? els.headScroll.scrollLeft : 0);
+      const h = Math.max(0, Math.min(23, Math.floor(L / cw + 0.001)));
+      const xform = `translateX(${L}px)`;
+      document.querySelectorAll(".hours > .day-pin").forEach(pin => {
+        const hoursEl = pin.parentElement;
         const ref = hoursEl.querySelector(`[data-hour="${h}"]`);
         const label = ref ? ref.getAttribute("data-date") || "" : "";
         if (pin.textContent !== label) {
@@ -2091,7 +2119,7 @@
           void pin.offsetWidth; // restart the flash animation
           pin.classList.add("flip");
         }
-        pin.style.transform = `translateX(${left}px)`;
+        pin.style.transform = xform;
       });
     }
 
@@ -2245,17 +2273,23 @@
     function bindScrollSync() {
       const scrollers = [els.headScroll, ...document.querySelectorAll(".body-scroll")];
       let syncing = false;
+      let pinRAF = 0;
 
       scrollers.forEach(scroller => {
         scroller.onscroll = () => {
-          if (syncing) return;
-          syncing = true;
-          const left = scroller.scrollLeft;
-          scrollers.forEach(other => {
-            if (other !== scroller) other.scrollLeft = left;
-          });
-          updateDayPins();
-          requestAnimationFrame(() => { syncing = false; });
+          // Mirror scrollLeft to the other rows immediately (no trailing/desync).
+          if (!syncing) {
+            syncing = true;
+            const left = scroller.scrollLeft;
+            for (const other of scrollers) {
+              if (other !== scroller) other.scrollLeft = left;
+            }
+            syncing = false;
+          }
+          // The heavier day-pin update is throttled to once per frame.
+          if (!pinRAF) {
+            pinRAF = requestAnimationFrame(() => { pinRAF = 0; updateDayPins(); });
+          }
         };
       });
     }
@@ -2272,7 +2306,7 @@
     /* ---------- range selection (pointer interactions) ---------- */
 
     const DRAG_THRESHOLD = 5;   // mouse/pen: px before a drag becomes a selection
-    const TOUCH_HOLD_MS = 280;  // touch: hold this long (still) to enter selection mode
+    const TOUCH_HOLD_MS = 200;  // touch: hold this long (still) to enter selection mode
     const TOUCH_MOVE_TOL = 10;  // touch: movement beyond this before the hold = a scroll
 
     const drag = {
