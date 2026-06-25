@@ -25,6 +25,28 @@ function render() {
   updateDayPins();
 }
 
+/* Keep the app feeling alive between full renders: tick each city's "Ahora"
+   time and move the live "now" marker. Text/class only — no rebuild. */
+function updateLiveClock() {
+  const now = new Date();
+  const base = baseZone();
+  const baseNow = getParts(now, base.timeZone);
+  const isToday = `${baseNow.year}-${pad(baseNow.month)}-${pad(baseNow.day)}` === state.dateISO;
+
+  state.zones.forEach(zone => {
+    const row = els.rows.querySelector(`.time-row[data-zone-id="${zone.id}"]`);
+    if (!row) return;
+    const cur = getParts(now, zone.timeZone);
+    const ct = row.querySelector(".current-time");
+    if (ct) ct.textContent = `Ahora · ${fmtDisplayTime(cur.hour, cur.minute)}`;
+  });
+
+  els.rows.querySelectorAll(".cell.now").forEach(c => c.classList.remove("now"));
+  if (isToday) {
+    els.rows.querySelectorAll(`.cell[data-hour="${baseNow.hour}"]`).forEach(c => c.classList.add("now"));
+  }
+}
+
 /* Keep each scroller's day label pinned to the left edge and showing the date of
    the leftmost visible hour — so it follows the lateral scroll and flips exactly
    when you cross a midnight boundary. */

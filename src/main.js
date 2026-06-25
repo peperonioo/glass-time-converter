@@ -184,3 +184,17 @@ load();
 bindEvents();
 render();
 setTimeout(focusHour, 160);
+
+// Staggered entrance for the rows on first mount only.
+const board = document.querySelector(".board");
+if (board) {
+  board.classList.add("intro");
+  setTimeout(() => board.classList.remove("intro"), 1500);
+}
+
+// Keep the clock alive: tick "Ahora" times + the now-marker every 30s,
+// and re-sync on the next exact minute.
+updateLiveClock();
+setInterval(updateLiveClock, 30000);
+const msToNextMinute = (60 - new Date().getSeconds()) * 1000;
+setTimeout(updateLiveClock, msToNextMinute);

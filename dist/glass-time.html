@@ -1164,6 +1164,90 @@
     .toolbar { animation: gt-rise .55s .06s var(--ease) both; }
     .board   { animation: gt-rise .6s .12s var(--ease) both; }
 
+    /* Ambient living aurora — slow drifting light behind the glass. */
+    .aurora {
+      position: fixed;
+      inset: -15%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      filter: blur(70px) saturate(140%);
+    }
+    .aurora span {
+      position: absolute;
+      display: block;
+      border-radius: 50%;
+      opacity: .42;
+      mix-blend-mode: screen;
+      will-change: transform;
+    }
+    .aurora span:nth-child(1) {
+      width: 48vw; height: 48vw; left: 0%; top: -8%;
+      background: radial-gradient(circle, rgba(115,198,255,.85), transparent 68%);
+      animation: gt-drift1 28s ease-in-out infinite;
+    }
+    .aurora span:nth-child(2) {
+      width: 44vw; height: 44vw; right: -4%; top: -4%;
+      background: radial-gradient(circle, rgba(217,184,255,.8), transparent 68%);
+      animation: gt-drift2 34s ease-in-out infinite;
+    }
+    .aurora span:nth-child(3) {
+      width: 54vw; height: 54vw; left: 28%; bottom: -22%;
+      background: radial-gradient(circle, rgba(255,181,223,.6), transparent 70%);
+      animation: gt-drift3 40s ease-in-out infinite;
+    }
+    @keyframes gt-drift1 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50%      { transform: translate(7vw, 5vh) scale(1.14); }
+    }
+    @keyframes gt-drift2 {
+      0%, 100% { transform: translate(0, 0) scale(1.05); }
+      50%      { transform: translate(-6vw, 6vh) scale(.92); }
+    }
+    @keyframes gt-drift3 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50%      { transform: translate(-5vw, -6vh) scale(1.16); }
+    }
+
+    /* Liquid light sweep across the selection band. */
+    .sel-band::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,.45) 50%, transparent 62%);
+      background-size: 240% 100%;
+      mix-blend-mode: screen;
+      opacity: .7;
+      animation: gt-shimmer 3.8s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes gt-shimmer {
+      0%   { background-position: 130% 0; }
+      100% { background-position: -30% 0; }
+    }
+    body.selecting .sel-band::before { animation: none; }
+
+    /* Gently floating logo. */
+    .logo {
+      animation: gt-float 6s ease-in-out infinite;
+      will-change: transform;
+    }
+    @keyframes gt-float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50%      { transform: translateY(-3px) rotate(1.2deg); }
+    }
+
+    /* Staggered row entrance — only during the initial mount window. */
+    .board.intro .time-row { animation: gt-rise .55s var(--ease) both; }
+    .board.intro .time-row:nth-child(1) { animation-delay: .14s; }
+    .board.intro .time-row:nth-child(2) { animation-delay: .20s; }
+    .board.intro .time-row:nth-child(3) { animation-delay: .26s; }
+    .board.intro .time-row:nth-child(4) { animation-delay: .32s; }
+    .board.intro .time-row:nth-child(5) { animation-delay: .38s; }
+    .board.intro .time-row:nth-child(6) { animation-delay: .44s; }
+    .board.intro .time-row:nth-child(n+7) { animation-delay: .5s; }
+
     /* Gentle living "now" marker. */
     .cell.now {
       box-shadow: none;
@@ -1201,6 +1285,7 @@
   </style>
 </head>
 <body>
+  <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
   <main class="app">
     <header class="nav">
       <section class="brand">
@@ -1798,6 +1883,28 @@
       updateDayPins();
     }
 
+    /* Keep the app feeling alive between full renders: tick each city's "Ahora"
+       time and move the live "now" marker. Text/class only — no rebuild. */
+    function updateLiveClock() {
+      const now = new Date();
+      const base = baseZone();
+      const baseNow = getParts(now, base.timeZone);
+      const isToday = `${baseNow.year}-${pad(baseNow.month)}-${pad(baseNow.day)}` === state.dateISO;
+
+      state.zones.forEach(zone => {
+        const row = els.rows.querySelector(`.time-row[data-zone-id="${zone.id}"]`);
+        if (!row) return;
+        const cur = getParts(now, zone.timeZone);
+        const ct = row.querySelector(".current-time");
+        if (ct) ct.textContent = `Ahora · ${fmtDisplayTime(cur.hour, cur.minute)}`;
+      });
+
+      els.rows.querySelectorAll(".cell.now").forEach(c => c.classList.remove("now"));
+      if (isToday) {
+        els.rows.querySelectorAll(`.cell[data-hour="${baseNow.hour}"]`).forEach(c => c.classList.add("now"));
+      }
+    }
+
     /* Keep each scroller's day label pinned to the left edge and showing the date of
        the leftmost visible hour — so it follows the lateral scroll and flips exactly
        when you cross a midnight boundary. */
@@ -2391,6 +2498,20 @@
     bindEvents();
     render();
     setTimeout(focusHour, 160);
+
+    // Staggered entrance for the rows on first mount only.
+    const board = document.querySelector(".board");
+    if (board) {
+      board.classList.add("intro");
+      setTimeout(() => board.classList.remove("intro"), 1500);
+    }
+
+    // Keep the clock alive: tick "Ahora" times + the now-marker every 30s,
+    // and re-sync on the next exact minute.
+    updateLiveClock();
+    setInterval(updateLiveClock, 30000);
+    const msToNextMinute = (60 - new Date().getSeconds()) * 1000;
+    setTimeout(updateLiveClock, msToNextMinute);
 
   </script>
 </body>

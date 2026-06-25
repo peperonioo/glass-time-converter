@@ -2,6 +2,21 @@
 
 All notable changes to Glass Time.
 
+## [0.8.0] — 2026-06-25
+
+### Added — "living" UI (elegant, smooth, ambient)
+
+- **Ambient aurora background:** three soft light orbs drift slowly behind the
+  glass for a calm, alive atmosphere (pure CSS transform animation).
+- **Liquid shimmer:** a light sweep glides across the selection band (pauses
+  while you actively drag).
+- **Live clock:** each city's "Ahora · <time>" and the pulsing "now" marker now
+  update by themselves every 30s and re-sync on the minute — the app feels alive
+  without a re-render.
+- **Floating logo** and a **staggered row entrance** on first load.
+- All motion is GPU-friendly (transform/opacity) and fully disabled under
+  `prefers-reduced-motion`.
+
 ## [0.7.4] — 2026-06-25
 
 ### Changed — readable "daylight map"
