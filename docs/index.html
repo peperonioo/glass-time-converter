@@ -519,7 +519,8 @@
         0 0 26px rgba(159,215,255,.22);
       transition: opacity .14s var(--ease), transform .14s var(--ease), border-color .14s var(--ease);
       pointer-events: none;
-      will-change: opacity, transform;
+      /* NOTE: no will-change here — there is one cursor-band per cell (~144),
+         and will-change would force ~144 GPU layers and wreck mobile scroll. */
     }
 
     .hour-head.cursor .cursor-band,
@@ -1083,18 +1084,29 @@
          repaints that drag scrolling FPS down. !important beats the later,
          higher-specificity animation definitions. */
       .aurora { filter: blur(46px) saturate(130%); }
-      .aurora span { animation: none !important; }  /* static aurora => no per-frame backdrop recompute */
-      .sel-band { animation: none !important; }
+      .aurora span { animation: none !important; will-change: auto !important; }  /* static => no extra GPU layers */
+      .sel-band { animation: none !important; will-change: auto; }
       .sel-band::before { animation: none !important; opacity: .3; }
       .logo { animation: none !important; }
       .scroll { -webkit-overflow-scrolling: touch; }
-      .board,
+
+      /* The board is the scroll container — a live backdrop-filter on it forces
+         Safari to re-rasterize the blur every scroll frame. Drop it on mobile and
+         use a more opaque glass base instead (still looks frosted, scrolls smooth). */
+      .board {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)),
+          rgba(12, 16, 30, .72);
+      }
+
       .island,
       .toolbar,
       .calendar-popover,
       .sheet {
-        backdrop-filter: blur(16px) saturate(135%);
-        -webkit-backdrop-filter: blur(16px) saturate(135%);
+        backdrop-filter: blur(14px) saturate(135%);
+        -webkit-backdrop-filter: blur(14px) saturate(135%);
       }
 
       /* Compact the whole header chrome so the timeline appears much higher. */

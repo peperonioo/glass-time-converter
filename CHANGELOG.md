@@ -2,6 +2,19 @@
 
 All notable changes to Glass Time.
 
+## [0.9.4] — 2026-06-25
+
+### Fixed — mobile scroll smoothness (the real causes)
+
+- Removed `will-change` from `.cursor-band`. There is one per cell (~144), so it
+  was forcing ~144 composited GPU layers — a major cause of the low-FPS scrolling
+  on phones.
+- Dropped the **live `backdrop-filter` from the scrolling board** on mobile
+  (Safari re-rasterizes the blur every scroll frame); the board now uses a more
+  opaque glass base that looks frosted but scrolls smoothly.
+- Dropped `will-change` from the (static) aurora on mobile so it no longer holds
+  large blurred layers in GPU memory.
+
 ## [0.9.3] — 2026-06-25
 
 ### Fixed — mobile polish
