@@ -58,7 +58,10 @@ function zonedTimeToUtc(dateISO, hour, minute, timeZone) {
 function offsetText(date, timeZone) {
   const p = getParts(date, timeZone);
   const localAsUTC = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
-  const mins = Math.round((localAsUTC - date.getTime()) / 60000);
+  // getParts is minute-precision, so compare against the minute-floored instant
+  // (otherwise the seconds make e.g. GMT+10 read as "GMT+9:59").
+  const floored = Math.floor(date.getTime() / 60000) * 60000;
+  const mins = Math.round((localAsUTC - floored) / 60000);
   const sign = mins >= 0 ? "+" : "-";
   const abs = Math.abs(mins);
   const h = Math.floor(abs / 60);

@@ -59,7 +59,8 @@ function coordsFor(zone, atDate) {
 function offsetMinutes(date, timeZone) {
   const p = getParts(date, timeZone);
   const localAsUTC = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
-  return Math.round((localAsUTC - date.getTime()) / 60000);
+  const floored = Math.floor(date.getTime() / 60000) * 60000;
+  return Math.round((localAsUTC - floored) / 60000);
 }
 
 /* Convenience: the sun phase for a zone at a UTC instant. */

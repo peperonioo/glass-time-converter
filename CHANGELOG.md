@@ -2,6 +2,20 @@
 
 All notable changes to Glass Time.
 
+## [0.9.1] — 2026-06-25
+
+### Fixed
+
+- **Mobile vertical layout** — the header chrome took up too much space, pushing
+  the timeline far down. On phones: brand subtitle and the "Hora seleccionada"
+  label are hidden, the island/toolbar are slimmer, the date controls fit on a
+  single row (label hidden), the hint and the redundant "Copiar" are hidden
+  (Compartir covers it), and the base city's "Base" pill is hidden (the left
+  panel already shows it). The timeline now starts roughly twice as high.
+- **GMT offset rounding** — a seconds-precision bug could show e.g. "GMT+9:59"
+  instead of "GMT+10"; offsets are now computed against the minute-floored
+  instant.
+
 ## [0.9.0] — 2026-06-25
 
 ### Added — Tier 1: real sun, reactive mood, sharing

@@ -1059,40 +1059,90 @@
 
     @media (max-width: 620px) {
       :root {
-        --city: 146px;
-        --cell: 54px;
-        --row: 68px;
+        --city: 138px;
+        --cell: 52px;
+        --row: 66px;
       }
 
       .app {
-        width: calc(100vw - 14px);
-        padding-top: 10px;
+        width: calc(100vw - 12px);
+        padding: 8px 0 24px;
       }
 
-      .brand p {
-        font-size: 12px;
+      /* Compact the whole header chrome so the timeline appears much higher. */
+      .nav {
+        gap: 8px;
+        margin-bottom: 10px;
       }
+
+      .brand { gap: 9px; }
+
+      .logo {
+        width: 34px;
+        height: 34px;
+        border-radius: 13px;
+      }
+
+      h1 { font-size: 22px; }
+
+      .brand p { display: none; }
 
       .island {
-        border-radius: 28px;
+        min-height: 0;
+        padding: 8px 15px;
+        border-radius: 20px;
       }
 
-      .island .chip {
-        display: none;
-      }
+      .island small { display: none; }
+
+      .island strong { font-size: 19px; }
+
+      .island .chip { display: none; }
+
+      .actions { gap: 6px; }
+
+      .actions .glass-btn { padding: 9px 12px; font-size: 13px; }
+
+      #copyBtn { display: none; } /* Compartir lo cubre en móvil */
 
       .toolbar {
-        border-radius: 26px;
+        padding: 9px;
+        margin-bottom: 10px;
+        border-radius: 22px;
+        gap: 8px;
       }
 
-      .left-head {
-        padding: 12px 10px;
+      .hint { display: none; }
+
+      .date-wrap {
+        flex-wrap: nowrap;
+        gap: 6px;
+        justify-content: center;
       }
+
+      .date-pill { padding: 7px 10px; }
+
+      .date-pill span { display: none; }
+
+      .date-wrap .glass-btn { padding: 8px 11px; }
+
+      .right-tools { gap: 6px; }
+
+      .right-tools .glass-btn { padding: 9px 12px; }
+
+      .left-head {
+        padding: 11px 10px;
+      }
+
+      .left-head strong { font-size: 14px; }
+
+      .base-date { font-size: 12px; }
 
       .left-head span {
         display: inline-flex;
         font-size: 11px;
-        padding: 5px 7px;
+        padding: 4px 7px;
+        margin-top: 6px;
       }
 
       .city-card {
@@ -1108,8 +1158,13 @@
         font-size: 14px;
       }
 
+      /* The left panel already says "Base · …", so free the row for the name. */
+      .base-tag { display: none; }
+
+      .offset { font-size: 10px; }
+
       .zone-name {
-        font-size: 11px;
+        font-size: 10px;
       }
 
       .current-time {
@@ -1625,7 +1680,10 @@
     function offsetText(date, timeZone) {
       const p = getParts(date, timeZone);
       const localAsUTC = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
-      const mins = Math.round((localAsUTC - date.getTime()) / 60000);
+      // getParts is minute-precision, so compare against the minute-floored instant
+      // (otherwise the seconds make e.g. GMT+10 read as "GMT+9:59").
+      const floored = Math.floor(date.getTime() / 60000) * 60000;
+      const mins = Math.round((localAsUTC - floored) / 60000);
       const sign = mins >= 0 ? "+" : "-";
       const abs = Math.abs(mins);
       const h = Math.floor(abs / 60);
@@ -1694,7 +1752,8 @@
     function offsetMinutes(date, timeZone) {
       const p = getParts(date, timeZone);
       const localAsUTC = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
-      return Math.round((localAsUTC - date.getTime()) / 60000);
+      const floored = Math.floor(date.getTime() / 60000) * 60000;
+      return Math.round((localAsUTC - floored) / 60000);
     }
 
     /* Convenience: the sun phase for a zone at a UTC instant. */
