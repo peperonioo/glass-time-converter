@@ -4,7 +4,9 @@
    Auto-split from the tested bundle. Edit here; run `node src/build.js` to regenerate dist. */
 /* ---------- range selection (pointer interactions) ---------- */
 
-const DRAG_THRESHOLD = 5; // px before a mouse drag becomes a selection
+const DRAG_THRESHOLD = 5;   // mouse/pen: px before a drag becomes a selection
+const TOUCH_HOLD_MS = 280;  // touch: hold this long (still) to enter selection mode
+const TOUCH_MOVE_TOL = 10;  // touch: movement beyond this before the hold = a scroll
 
 const drag = {
   active: false,
@@ -16,7 +18,8 @@ const drag = {
   pointerId: null,
   hoursEl: null,
   isHeader: false,
-  captureTarget: null
+  captureTarget: null,
+  holdTimer: null
 };
 
 /* Map an absolute clientX to a half-hour slot using a row's .hours rect,
@@ -44,6 +47,19 @@ function liveRange(anchorSlot, currentSlot) {
   renderIsland();
 }
 
+function clearHold() {
+  if (drag.holdTimer) {
+    clearTimeout(drag.holdTimer);
+    drag.holdTimer = null;
+  }
+}
+
+function startSelecting() {
+  drag.selecting = true;
+  document.body.classList.add("selecting"); // band tracks snappily + locks scroll
+  try { drag.captureTarget?.setPointerCapture?.(drag.pointerId); } catch { /* ignore */ }
+}
+
 function beginPointer(event, hoursEl, isHeader, captureTarget) {
   if (event.pointerType === "mouse" && event.button !== 0) return;
   let slot;
@@ -64,6 +80,18 @@ function beginPointer(event, hoursEl, isHeader, captureTarget) {
   drag.hoursEl = hoursEl;
   drag.isHeader = isHeader;
   drag.captureTarget = captureTarget;
+  clearHold();
+
+  if (event.pointerType === "touch") {
+    // Hold still to enter selection mode; a quick swipe scrolls instead.
+    drag.holdTimer = setTimeout(() => {
+      if (drag.active && !drag.selecting) {
+        startSelecting();
+        navigator.vibrate?.(15); // subtle haptic where supported
+        liveRange(drag.anchor, drag.anchor); // seed a 30m selection immediately
+      }
+    }, TOUCH_HOLD_MS);
+  }
 }
 
 function movePointer(event) {
@@ -73,15 +101,16 @@ function movePointer(event) {
 
   if (!drag.selecting) {
     if (drag.pointerType === "touch") {
-      // A touch that moves is a scroll gesture — abandon selection, let it pan.
-      if (Math.hypot(dx, dy) > DRAG_THRESHOLD) drag.active = false;
+      // Moved before the hold fired => it's a scroll; bail out of selection.
+      if (Math.hypot(dx, dy) > TOUCH_MOVE_TOL) {
+        clearHold();
+        drag.active = false;
+      }
       return;
     }
     // Mouse / pen: only start selecting after crossing the threshold.
     if (Math.abs(dx) <= DRAG_THRESHOLD && Math.abs(dy) <= DRAG_THRESHOLD) return;
-    drag.selecting = true;
-    document.body.classList.add("selecting"); // band tracks snappily while dragging
-    try { drag.captureTarget?.setPointerCapture?.(drag.pointerId); } catch { /* ignore */ }
+    startSelecting();
   }
 
   event.preventDefault();
@@ -91,6 +120,7 @@ function movePointer(event) {
 
 function endPointer(event) {
   if (!drag.active) return;
+  clearHold();
   const wasSelecting = drag.selecting;
   try { drag.captureTarget?.releasePointerCapture?.(drag.pointerId); } catch { /* ignore */ }
   drag.active = false;

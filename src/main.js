@@ -103,6 +103,12 @@ function bindEvents() {
   document.addEventListener("pointerup", endPointer);
   document.addEventListener("pointercancel", endPointer);
 
+  // While a touch selection is active, block the page/scroller from panning so
+  // the drag selects instead of scrolling.
+  document.addEventListener("touchmove", event => {
+    if (drag.selecting && drag.pointerType === "touch") event.preventDefault();
+  }, { passive: false });
+
   // City card actions (click — not part of the drag system).
   els.rows.addEventListener("click", event => {
     const row = event.target.closest(".time-row");

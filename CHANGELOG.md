@@ -2,6 +2,19 @@
 
 All notable changes to Glass Time.
 
+## [0.9.2] — 2026-06-25
+
+### Fixed — touch range selection
+
+- You can now **select a multi-hour range on touch**: hold still for ~280ms to
+  enter selection mode (with a haptic where supported), then drag. A quick swipe
+  still scrolls the timeline, and a quick tap still selects 30m.
+- While a touch selection is active, the scrollers are locked (`touch-action` +
+  non-passive `touchmove` preventDefault) so the drag selects instead of panning.
+- Suppressed the native iOS **text-selection / long-press magnifier** on the
+  timeline (`user-select` / `-webkit-touch-callout`), which used to fire instead
+  of selecting.
+
 ## [0.9.1] — 2026-06-25
 
 ### Fixed
