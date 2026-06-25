@@ -35,7 +35,7 @@ const els = {
   baseLabel: document.getElementById("baseLabel"),
   baseDate: document.getElementById("baseDate"),
   durationLabel: document.getElementById("durationLabel"),
-  headScroll: document.getElementById("headScroll"),
+  timeScroll: document.getElementById("timeScroll"),
   hourHeader: document.getElementById("hourHeader"),
   rows: document.getElementById("rows"),
   backdrop: document.getElementById("backdrop"),

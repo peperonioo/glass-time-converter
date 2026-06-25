@@ -394,18 +394,35 @@
       touch-action: none;
     }
 
-    .header-row,
-    .time-row {
-      display: grid;
-      grid-template-columns: var(--city) 1fr;
+    .time-scroll { position: relative; }
+
+    .grid { width: max-content; }
+
+    .row {
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+
+    .row:last-child { border-bottom: 0; }
+
+    /* Sticky city column — pinned to the left while the hours scroll natively.
+       Needs an opaque-ish base so scrolled cells don't bleed through it. */
+    .left-head,
+    .city-card {
+      position: sticky;
+      left: 0;
+      z-index: 5;
+      flex: 0 0 var(--city);
+      width: var(--city);
     }
 
     .left-head {
       min-height: 74px;
       padding: 16px 18px;
       border-right: 1px solid var(--line);
-      border-bottom: 1px solid var(--line);
-      background: rgba(255,255,255,.045);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)),
+        rgba(12, 16, 30, .94);
     }
 
     .left-head strong {
@@ -451,6 +468,7 @@
 
     .hours {
       position: relative;
+      flex: 0 0 auto;
       display: grid;
       grid-template-columns: repeat(24, var(--cell));
       width: calc(24 * var(--cell));
@@ -463,7 +481,6 @@
       display: grid;
       place-items: center;
       border-right: 1px solid rgba(255,255,255,.09);
-      border-bottom: 1px solid var(--line);
       text-align: center;
       background: rgba(255,255,255,.032);
     }
@@ -549,21 +566,14 @@
       letter-spacing: .08em;
     }
 
-    .time-row {
-      min-height: var(--row);
-      border-bottom: 1px solid rgba(255,255,255,.10);
-    }
-
-    .time-row:last-child {
-      border-bottom: 0;
-    }
-
     .city-card {
-      position: relative;
+      position: sticky;
       min-height: var(--row);
       padding: 10px 12px;
       border-right: 1px solid var(--line);
-      background: rgba(255,255,255,.028);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)),
+        rgba(14, 18, 32, .94);
       display: flex;
       align-items: center;
       gap: 11px;
@@ -573,13 +583,15 @@
     }
 
     .city-card:hover {
-      background: rgba(255,255,255,.07);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04)),
+        rgba(14, 18, 32, .94);
     }
 
     .city-card.anchor {
       background:
-        linear-gradient(90deg, rgba(159,215,255,.13), rgba(217,184,255,.05)),
-        rgba(255,255,255,.035);
+        linear-gradient(90deg, rgba(159,215,255,.16), rgba(217,184,255,.07)),
+        rgba(14, 18, 32, .94);
     }
 
     .city-glow {
@@ -1361,14 +1373,13 @@
     }
 
     /* Staggered row entrance — only during the initial mount window. */
-    .board.intro .time-row { animation: gt-rise .55s var(--ease) both; }
-    .board.intro .time-row:nth-child(1) { animation-delay: .14s; }
-    .board.intro .time-row:nth-child(2) { animation-delay: .20s; }
-    .board.intro .time-row:nth-child(3) { animation-delay: .26s; }
-    .board.intro .time-row:nth-child(4) { animation-delay: .32s; }
-    .board.intro .time-row:nth-child(5) { animation-delay: .38s; }
-    .board.intro .time-row:nth-child(6) { animation-delay: .44s; }
-    .board.intro .time-row:nth-child(n+7) { animation-delay: .5s; }
+    .board.intro #rows .row { animation: gt-rise .55s var(--ease) both; }
+    .board.intro #rows .row:nth-child(1) { animation-delay: .14s; }
+    .board.intro #rows .row:nth-child(2) { animation-delay: .20s; }
+    .board.intro #rows .row:nth-child(3) { animation-delay: .26s; }
+    .board.intro #rows .row:nth-child(4) { animation-delay: .32s; }
+    .board.intro #rows .row:nth-child(5) { animation-delay: .38s; }
+    .board.intro #rows .row:nth-child(n+6) { animation-delay: .44s; }
 
     /* Gentle living "now" marker. */
     .cell.now {
@@ -1476,18 +1487,21 @@
     </section>
 
     <section class="board" aria-label="Conversor visual">
-      <div class="header-row">
-        <div class="left-head">
-          <strong id="baseLabel">Base</strong>
-          <div id="baseDate" class="base-date">—</div>
-          <span id="durationLabel">Seleccionado · 1h</span>
-        </div>
-        <div class="scroll" id="headScroll">
-          <div class="hours" id="hourHeader"></div>
+      <!-- ONE horizontal scroller; the city column is position:sticky so it stays
+           pinned while the hours scroll natively (no JS sync = smooth). -->
+      <div class="scroll time-scroll" id="timeScroll">
+        <div class="grid">
+          <div class="row head-row">
+            <div class="left-head">
+              <strong id="baseLabel">Base</strong>
+              <div id="baseDate" class="base-date">—</div>
+              <span id="durationLabel">Seleccionado · 1h</span>
+            </div>
+            <div class="hours" id="hourHeader"></div>
+          </div>
+          <div id="rows"></div>
         </div>
       </div>
-
-      <div id="rows"></div>
     </section>
   </main>
 

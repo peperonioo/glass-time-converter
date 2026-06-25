@@ -7,7 +7,7 @@
    Pointer interactions never call this — they patch the DOM directly. */
 
 function render() {
-  const keepScroll = els.headScroll ? els.headScroll.scrollLeft : 0;
+  const keepScroll = els.timeScroll ? els.timeScroll.scrollLeft : 0;
   els.dateInput.value = state.dateISO;
   els.baseLabel.textContent = `Base · ${baseZone().label}`;
   // Always-visible base date (the timeline header date can scroll out of view).
@@ -34,7 +34,7 @@ function updateLiveClock() {
   const isToday = `${baseNow.year}-${pad(baseNow.month)}-${pad(baseNow.day)}` === state.dateISO;
 
   state.zones.forEach(zone => {
-    const row = els.rows.querySelector(`.time-row[data-zone-id="${zone.id}"]`);
+    const row = els.rows.querySelector(`.row[data-zone-id="${zone.id}"]`);
     if (!row) return;
     const cur = getParts(now, zone.timeZone);
     const ct = row.querySelector(".current-time");
@@ -52,7 +52,7 @@ function updateLiveClock() {
    when you cross a midnight boundary. All scrollers share the same scrollLeft. */
 function updateDayPins(left) {
   const cw = cellWidthPx();
-  const L = typeof left === "number" ? left : (els.headScroll ? els.headScroll.scrollLeft : 0);
+  const L = typeof left === "number" ? left : (els.timeScroll ? els.timeScroll.scrollLeft : 0);
   const h = Math.max(0, Math.min(23, Math.floor(L / cw + 0.001)));
   const xform = `translateX(${L}px)`;
   document.querySelectorAll(".hours > .day-pin").forEach(pin => {
@@ -70,10 +70,7 @@ function updateDayPins(left) {
 }
 
 function restoreScroll(left) {
-  const scrollers = [els.headScroll, ...document.querySelectorAll(".body-scroll")];
-  scrollers.forEach(scroller => {
-    scroller.scrollLeft = left;
-  });
+  els.timeScroll.scrollLeft = left;
 }
 
 function renderHeader() {
@@ -149,7 +146,7 @@ function renderRows() {
     }).join("");
 
     return `
-      <div class="time-row" data-zone-id="${zone.id}">
+      <div class="row" data-zone-id="${zone.id}">
         <div class="city-card ${index === 0 ? "anchor" : ""}" data-action="edit-zone" style="--zone-color:${color}">
           <div class="city-glow" style="background:linear-gradient(180deg, ${color}, rgba(255,255,255,.65))"></div>
           <div class="city-main">
@@ -166,12 +163,10 @@ function renderRows() {
             ${state.zones.length > 1 ? `<button class="mini-btn remove-zone" title="Eliminar">×</button>` : ""}
           </div>
         </div>
-        <div class="scroll body-scroll">
-          <div class="hours" style="--sel-start:${range.start}; --sel-len:${range.durationSlots};">
-            ${cells}
-            <div class="sel-band" aria-hidden="true"></div>
-            <div class="day-pin" aria-hidden="true"></div>
-          </div>
+        <div class="hours" style="--sel-start:${range.start}; --sel-len:${range.durationSlots};">
+          ${cells}
+          <div class="sel-band" aria-hidden="true"></div>
+          <div class="day-pin" aria-hidden="true"></div>
         </div>
       </div>
     `;
@@ -204,43 +199,30 @@ function updateMood(instant) {
    The floating .sel-band glides via a CSS transition when these vars change. */
 function applySelectionDOM() {
   const range = normalizedRange();
-  document.querySelectorAll(".body-scroll .hours").forEach(hours => {
+  els.rows.querySelectorAll(".hours").forEach(hours => {
     hours.style.setProperty("--sel-start", range.start);
     hours.style.setProperty("--sel-len", range.durationSlots);
   });
   for (let h = 0; h < 24; h++) {
     const selected = cellSelected(h, range);
-    document.querySelectorAll(`.body-scroll .cell[data-hour="${h}"]`).forEach(cell => {
+    els.rows.querySelectorAll(`.cell[data-hour="${h}"]`).forEach(cell => {
       cell.classList.toggle("selected", selected);
     });
   }
 }
 
+/* Single native scroller — no JS row-syncing at all. Just keep the day pins in
+   step, throttled to one update per frame. */
 function bindScrollSync() {
-  const scrollers = [els.headScroll, ...document.querySelectorAll(".body-scroll")];
-  let syncing = false;
   let pinRAF = 0;
-
-  scrollers.forEach(scroller => {
-    scroller.onscroll = () => {
-      // Mirror scrollLeft to the other rows immediately (no trailing/desync).
-      if (!syncing) {
-        syncing = true;
-        const left = scroller.scrollLeft;
-        for (const other of scrollers) {
-          if (other !== scroller) other.scrollLeft = left;
-        }
-        syncing = false;
-      }
-      // The heavier day-pin update is throttled to once per frame.
-      if (!pinRAF) {
-        pinRAF = requestAnimationFrame(() => { pinRAF = 0; updateDayPins(); });
-      }
-    };
-  });
+  els.timeScroll.onscroll = () => {
+    if (!pinRAF) {
+      pinRAF = requestAnimationFrame(() => { pinRAF = 0; updateDayPins(); });
+    }
+  };
 }
 
 function focusHour() {
   const target = Math.max(0, slotHour(normalizedRange().start) * cellWidthPx() - 180);
-  els.headScroll.scrollTo({ left: target, behavior: "smooth" });
+  els.timeScroll.scrollTo({ left: target, behavior: "smooth" });
 }

@@ -111,7 +111,7 @@ function bindEvents() {
 
   // City card actions (click — not part of the drag system).
   els.rows.addEventListener("click", event => {
-    const row = event.target.closest(".time-row");
+    const row = event.target.closest(".row");
     if (!row) return;
 
     if (event.target.closest(".remove-zone")) {

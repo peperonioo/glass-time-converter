@@ -394,18 +394,35 @@
       touch-action: none;
     }
 
-    .header-row,
-    .time-row {
-      display: grid;
-      grid-template-columns: var(--city) 1fr;
+    .time-scroll { position: relative; }
+
+    .grid { width: max-content; }
+
+    .row {
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+
+    .row:last-child { border-bottom: 0; }
+
+    /* Sticky city column — pinned to the left while the hours scroll natively.
+       Needs an opaque-ish base so scrolled cells don't bleed through it. */
+    .left-head,
+    .city-card {
+      position: sticky;
+      left: 0;
+      z-index: 5;
+      flex: 0 0 var(--city);
+      width: var(--city);
     }
 
     .left-head {
       min-height: 74px;
       padding: 16px 18px;
       border-right: 1px solid var(--line);
-      border-bottom: 1px solid var(--line);
-      background: rgba(255,255,255,.045);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)),
+        rgba(12, 16, 30, .94);
     }
 
     .left-head strong {
@@ -451,6 +468,7 @@
 
     .hours {
       position: relative;
+      flex: 0 0 auto;
       display: grid;
       grid-template-columns: repeat(24, var(--cell));
       width: calc(24 * var(--cell));
@@ -463,7 +481,6 @@
       display: grid;
       place-items: center;
       border-right: 1px solid rgba(255,255,255,.09);
-      border-bottom: 1px solid var(--line);
       text-align: center;
       background: rgba(255,255,255,.032);
     }
@@ -549,21 +566,14 @@
       letter-spacing: .08em;
     }
 
-    .time-row {
-      min-height: var(--row);
-      border-bottom: 1px solid rgba(255,255,255,.10);
-    }
-
-    .time-row:last-child {
-      border-bottom: 0;
-    }
-
     .city-card {
-      position: relative;
+      position: sticky;
       min-height: var(--row);
       padding: 10px 12px;
       border-right: 1px solid var(--line);
-      background: rgba(255,255,255,.028);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)),
+        rgba(14, 18, 32, .94);
       display: flex;
       align-items: center;
       gap: 11px;
@@ -573,13 +583,15 @@
     }
 
     .city-card:hover {
-      background: rgba(255,255,255,.07);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04)),
+        rgba(14, 18, 32, .94);
     }
 
     .city-card.anchor {
       background:
-        linear-gradient(90deg, rgba(159,215,255,.13), rgba(217,184,255,.05)),
-        rgba(255,255,255,.035);
+        linear-gradient(90deg, rgba(159,215,255,.16), rgba(217,184,255,.07)),
+        rgba(14, 18, 32, .94);
     }
 
     .city-glow {
@@ -1361,14 +1373,13 @@
     }
 
     /* Staggered row entrance — only during the initial mount window. */
-    .board.intro .time-row { animation: gt-rise .55s var(--ease) both; }
-    .board.intro .time-row:nth-child(1) { animation-delay: .14s; }
-    .board.intro .time-row:nth-child(2) { animation-delay: .20s; }
-    .board.intro .time-row:nth-child(3) { animation-delay: .26s; }
-    .board.intro .time-row:nth-child(4) { animation-delay: .32s; }
-    .board.intro .time-row:nth-child(5) { animation-delay: .38s; }
-    .board.intro .time-row:nth-child(6) { animation-delay: .44s; }
-    .board.intro .time-row:nth-child(n+7) { animation-delay: .5s; }
+    .board.intro #rows .row { animation: gt-rise .55s var(--ease) both; }
+    .board.intro #rows .row:nth-child(1) { animation-delay: .14s; }
+    .board.intro #rows .row:nth-child(2) { animation-delay: .20s; }
+    .board.intro #rows .row:nth-child(3) { animation-delay: .26s; }
+    .board.intro #rows .row:nth-child(4) { animation-delay: .32s; }
+    .board.intro #rows .row:nth-child(5) { animation-delay: .38s; }
+    .board.intro #rows .row:nth-child(n+6) { animation-delay: .44s; }
 
     /* Gentle living "now" marker. */
     .cell.now {
@@ -1476,18 +1487,21 @@
     </section>
 
     <section class="board" aria-label="Conversor visual">
-      <div class="header-row">
-        <div class="left-head">
-          <strong id="baseLabel">Base</strong>
-          <div id="baseDate" class="base-date">—</div>
-          <span id="durationLabel">Seleccionado · 1h</span>
-        </div>
-        <div class="scroll" id="headScroll">
-          <div class="hours" id="hourHeader"></div>
+      <!-- ONE horizontal scroller; the city column is position:sticky so it stays
+           pinned while the hours scroll natively (no JS sync = smooth). -->
+      <div class="scroll time-scroll" id="timeScroll">
+        <div class="grid">
+          <div class="row head-row">
+            <div class="left-head">
+              <strong id="baseLabel">Base</strong>
+              <div id="baseDate" class="base-date">—</div>
+              <span id="durationLabel">Seleccionado · 1h</span>
+            </div>
+            <div class="hours" id="hourHeader"></div>
+          </div>
+          <div id="rows"></div>
         </div>
       </div>
-
-      <div id="rows"></div>
     </section>
   </main>
 
@@ -1843,7 +1857,7 @@
       baseLabel: document.getElementById("baseLabel"),
       baseDate: document.getElementById("baseDate"),
       durationLabel: document.getElementById("durationLabel"),
-      headScroll: document.getElementById("headScroll"),
+      timeScroll: document.getElementById("timeScroll"),
       hourHeader: document.getElementById("hourHeader"),
       rows: document.getElementById("rows"),
       backdrop: document.getElementById("backdrop"),
@@ -2073,7 +2087,7 @@
        Pointer interactions never call this — they patch the DOM directly. */
 
     function render() {
-      const keepScroll = els.headScroll ? els.headScroll.scrollLeft : 0;
+      const keepScroll = els.timeScroll ? els.timeScroll.scrollLeft : 0;
       els.dateInput.value = state.dateISO;
       els.baseLabel.textContent = `Base · ${baseZone().label}`;
       // Always-visible base date (the timeline header date can scroll out of view).
@@ -2100,7 +2114,7 @@
       const isToday = `${baseNow.year}-${pad(baseNow.month)}-${pad(baseNow.day)}` === state.dateISO;
 
       state.zones.forEach(zone => {
-        const row = els.rows.querySelector(`.time-row[data-zone-id="${zone.id}"]`);
+        const row = els.rows.querySelector(`.row[data-zone-id="${zone.id}"]`);
         if (!row) return;
         const cur = getParts(now, zone.timeZone);
         const ct = row.querySelector(".current-time");
@@ -2118,7 +2132,7 @@
        when you cross a midnight boundary. All scrollers share the same scrollLeft. */
     function updateDayPins(left) {
       const cw = cellWidthPx();
-      const L = typeof left === "number" ? left : (els.headScroll ? els.headScroll.scrollLeft : 0);
+      const L = typeof left === "number" ? left : (els.timeScroll ? els.timeScroll.scrollLeft : 0);
       const h = Math.max(0, Math.min(23, Math.floor(L / cw + 0.001)));
       const xform = `translateX(${L}px)`;
       document.querySelectorAll(".hours > .day-pin").forEach(pin => {
@@ -2136,10 +2150,7 @@
     }
 
     function restoreScroll(left) {
-      const scrollers = [els.headScroll, ...document.querySelectorAll(".body-scroll")];
-      scrollers.forEach(scroller => {
-        scroller.scrollLeft = left;
-      });
+      els.timeScroll.scrollLeft = left;
     }
 
     function renderHeader() {
@@ -2215,7 +2226,7 @@
         }).join("");
 
         return `
-          <div class="time-row" data-zone-id="${zone.id}">
+          <div class="row" data-zone-id="${zone.id}">
             <div class="city-card ${index === 0 ? "anchor" : ""}" data-action="edit-zone" style="--zone-color:${color}">
               <div class="city-glow" style="background:linear-gradient(180deg, ${color}, rgba(255,255,255,.65))"></div>
               <div class="city-main">
@@ -2232,12 +2243,10 @@
                 ${state.zones.length > 1 ? `<button class="mini-btn remove-zone" title="Eliminar">×</button>` : ""}
               </div>
             </div>
-            <div class="scroll body-scroll">
-              <div class="hours" style="--sel-start:${range.start}; --sel-len:${range.durationSlots};">
-                ${cells}
-                <div class="sel-band" aria-hidden="true"></div>
-                <div class="day-pin" aria-hidden="true"></div>
-              </div>
+            <div class="hours" style="--sel-start:${range.start}; --sel-len:${range.durationSlots};">
+              ${cells}
+              <div class="sel-band" aria-hidden="true"></div>
+              <div class="day-pin" aria-hidden="true"></div>
             </div>
           </div>
         `;
@@ -2270,45 +2279,32 @@
        The floating .sel-band glides via a CSS transition when these vars change. */
     function applySelectionDOM() {
       const range = normalizedRange();
-      document.querySelectorAll(".body-scroll .hours").forEach(hours => {
+      els.rows.querySelectorAll(".hours").forEach(hours => {
         hours.style.setProperty("--sel-start", range.start);
         hours.style.setProperty("--sel-len", range.durationSlots);
       });
       for (let h = 0; h < 24; h++) {
         const selected = cellSelected(h, range);
-        document.querySelectorAll(`.body-scroll .cell[data-hour="${h}"]`).forEach(cell => {
+        els.rows.querySelectorAll(`.cell[data-hour="${h}"]`).forEach(cell => {
           cell.classList.toggle("selected", selected);
         });
       }
     }
 
+    /* Single native scroller — no JS row-syncing at all. Just keep the day pins in
+       step, throttled to one update per frame. */
     function bindScrollSync() {
-      const scrollers = [els.headScroll, ...document.querySelectorAll(".body-scroll")];
-      let syncing = false;
       let pinRAF = 0;
-
-      scrollers.forEach(scroller => {
-        scroller.onscroll = () => {
-          // Mirror scrollLeft to the other rows immediately (no trailing/desync).
-          if (!syncing) {
-            syncing = true;
-            const left = scroller.scrollLeft;
-            for (const other of scrollers) {
-              if (other !== scroller) other.scrollLeft = left;
-            }
-            syncing = false;
-          }
-          // The heavier day-pin update is throttled to once per frame.
-          if (!pinRAF) {
-            pinRAF = requestAnimationFrame(() => { pinRAF = 0; updateDayPins(); });
-          }
-        };
-      });
+      els.timeScroll.onscroll = () => {
+        if (!pinRAF) {
+          pinRAF = requestAnimationFrame(() => { pinRAF = 0; updateDayPins(); });
+        }
+      };
     }
 
     function focusHour() {
       const target = Math.max(0, slotHour(normalizedRange().start) * cellWidthPx() - 180);
-      els.headScroll.scrollTo({ left: target, behavior: "smooth" });
+      els.timeScroll.scrollTo({ left: target, behavior: "smooth" });
     }
 
     /* ===== ui/range-selection.js ===== */
@@ -2852,7 +2848,7 @@
 
       // City card actions (click — not part of the drag system).
       els.rows.addEventListener("click", event => {
-        const row = event.target.closest(".time-row");
+        const row = event.target.closest(".row");
         if (!row) return;
 
         if (event.target.closest(".remove-zone")) {

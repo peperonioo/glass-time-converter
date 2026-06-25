@@ -2,6 +2,20 @@
 
 All notable changes to Glass Time.
 
+## [0.9.5] — 2026-06-25
+
+### Changed — single scroll container (definitive smooth-scroll fix)
+
+- Replaced the 5 independently-scrolling rows (header + each city) that were kept
+  in step with JS `scrollLeft` writes — an architecture that can't be smooth on
+  mobile — with **one native horizontal scroller**. The city column is now
+  `position: sticky` so it stays pinned while the hours scroll. No JS sync at all;
+  scrolling is fully native. The day-pin update is the only on-scroll work, and
+  it's throttled to one rAF per frame.
+- Sticky city cards use an opaque glass base so scrolled cells don't show through.
+- Bumped the service-worker cache (`v0.9.5`) so the update is actually delivered
+  instead of a stale cached build.
+
 ## [0.9.4] — 2026-06-25
 
 ### Fixed — mobile scroll smoothness (the real causes)
