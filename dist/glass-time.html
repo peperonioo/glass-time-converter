@@ -776,28 +776,44 @@
       font-size: 9px;
     }
 
+    /* Daylight map — read at a glance when it's a good hour in each city.
+       Deep night (quiet hours) -> dawn -> bright core day -> dusk. */
     .cell.night {
-      color: rgba(255,255,255,.40);
-      background: rgba(4,7,18,.22);
+      color: rgba(255,255,255,.34);
+      background: rgba(3,6,16,.42);
     }
 
     .cell.morning {
-      background: rgba(255,210,183,.045);
+      background: rgba(255,205,150,.085);
     }
 
     .cell.work {
-      background: rgba(189,247,210,.045);
+      background: rgba(150,232,185,.11);
     }
 
     .cell.evening {
-      background: rgba(217,184,255,.045);
+      background: rgba(196,168,255,.085);
     }
 
-    /* Day boundary: a single subtle divider + one date chip per day segment,
-       instead of a "Día ±1" badge on every shifted cell. */
+    /* "Other day" veil: cells on the previous/next calendar day get a faint
+       cool/warm tint so each day reads as its own block. */
+    .cell.prev-day::after,
+    .cell.next-day::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .cell.prev-day::after { background: rgba(96,128,210,.12); }
+    .cell.next-day::after { background: rgba(255,176,120,.12); }
+    .cell.prev-day .t,
+    .cell.next-day .t { opacity: .72; }
+
+    /* Day boundary: a clear, slightly accented midnight divider. */
     .cell.day-start,
     .hour-head.day-start:not(:first-child) {
-      border-left: 1px solid rgba(255,255,255,.22);
+      border-left: 2px solid rgba(159,215,255,.42);
     }
 
     /* Scroll-following day label: pinned to the left edge of the scroller,
@@ -1873,11 +1889,12 @@
           const morning = p.hour >= 6 && p.hour < 10;
           const work = p.hour >= 10 && p.hour < 18;
           const evening = p.hour >= 18 && p.hour < 22;
+          const otherDay = dayShift === "-1" ? "prev-day" : dayShift === "+1" ? "next-day" : "";
           const nowClass = isToday && h === baseNow.hour ? "now" : "";
           const cursor = h === slotHour(state.cursorSlot);
 
           return `
-            <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${dayStart ? "day-start" : ""} ${nowClass}"
+            <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${otherDay} ${dayStart ? "day-start" : ""} ${nowClass}"
               data-hour="${h}"
               data-date="${escapeHTML(dateLabel)}"
               title="${escapeHTML(zone.label)}: ${fmtDate(p)} ${fmtDisplayTime(p.hour)}">

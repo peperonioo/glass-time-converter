@@ -2,6 +2,19 @@
 
 All notable changes to Glass Time.
 
+## [0.7.4] — 2026-06-25
+
+### Changed — readable "daylight map"
+
+- Day/night tinting is now actually perceptible (was ~0.045 opacity). Each hour
+  reads as deep **night** (quiet hours, dark + dimmed numbers) → **dawn** (warm)
+  → bright **core day** (the easy "good hours" to scan) → **dusk** (violet).
+- **Day separation:** cells on the previous/next calendar day get a faint
+  cool/warm veil with slightly dimmed numbers, so each day reads as its own
+  block — and the midnight boundary is now a clear accented divider.
+- Net effect: you can scan a row and instantly tell when it's day/night in that
+  city, and where one day ends and the next begins.
+
 ## [0.7.3] — 2026-06-25
 
 ### Changed — scroll-following day labels

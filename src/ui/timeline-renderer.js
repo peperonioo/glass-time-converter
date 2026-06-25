@@ -116,11 +116,12 @@ function renderRows() {
       const morning = p.hour >= 6 && p.hour < 10;
       const work = p.hour >= 10 && p.hour < 18;
       const evening = p.hour >= 18 && p.hour < 22;
+      const otherDay = dayShift === "-1" ? "prev-day" : dayShift === "+1" ? "next-day" : "";
       const nowClass = isToday && h === baseNow.hour ? "now" : "";
       const cursor = h === slotHour(state.cursorSlot);
 
       return `
-        <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${dayStart ? "day-start" : ""} ${nowClass}"
+        <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${otherDay} ${dayStart ? "day-start" : ""} ${nowClass}"
           data-hour="${h}"
           data-date="${escapeHTML(dateLabel)}"
           title="${escapeHTML(zone.label)}: ${fmtDate(p)} ${fmtDisplayTime(p.hour)}">
