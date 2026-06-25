@@ -134,16 +134,13 @@ function renderRows() {
       prevISO = localISO;
       const dateLabel = `${fmtDate(p)}${dayShift ? ` · ${dayShift}` : ""}`;
       const selected = cellSelected(h, range);
-      const night = p.hour < 6 || p.hour >= 22;
-      const morning = p.hour >= 6 && p.hour < 10;
-      const work = p.hour >= 10 && p.hour < 18;
-      const evening = p.hour >= 18 && p.hour < 22;
+      const phase = zonePhaseAt(zone, instant); // real sun: day / golden / twilight / night
       const otherDay = dayShift === "-1" ? "prev-day" : dayShift === "+1" ? "next-day" : "";
       const nowClass = isToday && h === baseNow.hour ? "now" : "";
       const cursor = h === slotHour(state.cursorSlot);
 
       return `
-        <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${otherDay} ${dayStart ? "day-start" : ""} ${nowClass}"
+        <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} sun-${phase} ${otherDay} ${dayStart ? "day-start" : ""} ${nowClass}"
           data-hour="${h}"
           data-date="${escapeHTML(dateLabel)}"
           title="${escapeHTML(zone.label)}: ${fmtDate(p)} ${fmtDisplayTime(p.hour)}">
@@ -196,6 +193,13 @@ function renderIsland() {
   els.selectedSummary.textContent = `${duration} seleccionadas`;
   els.selectedDateChip.textContent = `${base.label} · ${fmtDate(baseStart)} · ${baseRange}`;
   els.durationLabel.textContent = `Seleccionado · ${duration}`;
+  updateMood(startInstant);
+}
+
+/* Ambient mood: tint the whole scene by the sun phase at the base city for the
+   selected time — warm at golden hour, deep at night. Updates live while dragging. */
+function updateMood(instant) {
+  document.body.dataset.mood = zonePhaseAt(baseZone(), instant || selectedInstant());
 }
 
 /* Patch selection styling on the existing DOM — no rebuild, no scroll loss.

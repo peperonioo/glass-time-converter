@@ -23,6 +23,7 @@ const MODULES = [
   "data/timezone-library.js",
   "core/date-utils.js",
   "core/timezone-engine.js",
+  "core/sun-engine.js",
   "state/store.js",
   "state/persistence.js",
   "core/calendar-export.js",
@@ -31,6 +32,7 @@ const MODULES = [
   "ui/range-selection.js",
   "ui/timezone-picker.js",
   "ui/calendar-menu.js",
+  "ui/share.js",
   "main.js"
 ];
 

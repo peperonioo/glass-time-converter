@@ -53,6 +53,7 @@ function bindEvents() {
 
   els.nowBtn.addEventListener("click", jumpNow);
   els.copyBtn.addEventListener("click", copySelection);
+  els.shareBtn.addEventListener("click", shareSelection);
 
   els.calendarMenuBtn.addEventListener("click", event => {
     event.stopPropagation();
@@ -181,6 +182,12 @@ function bindEvents() {
 /* ---------- bootstrap ---------- */
 
 load();
+// A shared link overrides stored state, then we clean the URL so refreshes use
+// the (now-persisted) state normally.
+if (applyStateFromURL()) {
+  save();
+  history.replaceState(null, "", location.origin + location.pathname);
+}
 bindEvents();
 render();
 setTimeout(focusHour, 160);

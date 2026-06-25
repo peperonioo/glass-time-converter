@@ -23,6 +23,7 @@ const els = {
   nextBtn: document.getElementById("nextBtn"),
   nowBtn: document.getElementById("nowBtn"),
   copyBtn: document.getElementById("copyBtn"),
+  shareBtn: document.getElementById("shareBtn"),
   calendarMenu: document.getElementById("calendarMenu"),
   calendarMenuBtn: document.getElementById("calendarMenuBtn"),
   calendarPopover: document.getElementById("calendarPopover"),

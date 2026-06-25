@@ -776,23 +776,24 @@
       font-size: 9px;
     }
 
-    /* Daylight map — read at a glance when it's a good hour in each city.
-       Deep night (quiet hours) -> dawn -> bright core day -> dusk. */
-    .cell.night {
+    /* Real daylight map — tints come from the actual sun altitude per city.
+       night (below horizon) -> twilight -> golden hour -> full day. */
+    .cell.sun-night {
       color: rgba(255,255,255,.34);
-      background: rgba(3,6,16,.42);
+      background: rgba(3,6,16,.46);
     }
 
-    .cell.morning {
-      background: rgba(255,205,150,.085);
+    .cell.sun-twilight {
+      color: rgba(255,255,255,.62);
+      background: rgba(120,120,200,.13);
     }
 
-    .cell.work {
-      background: rgba(150,232,185,.11);
+    .cell.sun-golden {
+      background: rgba(255,176,92,.16);
     }
 
-    .cell.evening {
-      background: rgba(196,168,255,.085);
+    .cell.sun-day {
+      background: rgba(150,232,185,.10);
     }
 
     /* "Other day" veil: cells on the previous/next calendar day get a faint
@@ -1164,6 +1165,21 @@
     .toolbar { animation: gt-rise .55s .06s var(--ease) both; }
     .board   { animation: gt-rise .6s .12s var(--ease) both; }
 
+    /* Ambient mood veil — tints the whole scene by the sun phase at the selected
+       time (warm at golden hour, deep at night). Crossfades smoothly. */
+    .mood-veil {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-color: transparent;
+      transition: background-color 1.4s var(--ease);
+    }
+    body[data-mood="day"]      .mood-veil { background-color: rgba(150,200,255,.05); }
+    body[data-mood="golden"]   .mood-veil { background-color: rgba(255,150,60,.11); }
+    body[data-mood="twilight"] .mood-veil { background-color: rgba(120,90,210,.13); }
+    body[data-mood="night"]    .mood-veil { background-color: rgba(4,8,26,.42); }
+
     /* Ambient living aurora — slow drifting light behind the glass. */
     .aurora {
       position: fixed;
@@ -1286,6 +1302,7 @@
 </head>
 <body>
   <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+  <div class="mood-veil" aria-hidden="true"></div>
   <main class="app">
     <header class="nav">
       <section class="brand">
@@ -1307,6 +1324,7 @@
       <section class="actions">
         <button class="glass-btn" id="nowBtn">Ahora</button>
         <button class="glass-btn" id="copyBtn">Copiar</button>
+        <button class="glass-btn" id="shareBtn">Compartir</button>
         <div class="calendar-menu" id="calendarMenu">
           <button class="glass-btn calendar-plus" id="calendarMenuBtn" aria-expanded="false">＋ Guardar</button>
           <div class="calendar-popover" id="calendarPopover" role="menu">

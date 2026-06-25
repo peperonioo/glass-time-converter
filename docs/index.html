@@ -776,23 +776,24 @@
       font-size: 9px;
     }
 
-    /* Daylight map — read at a glance when it's a good hour in each city.
-       Deep night (quiet hours) -> dawn -> bright core day -> dusk. */
-    .cell.night {
+    /* Real daylight map — tints come from the actual sun altitude per city.
+       night (below horizon) -> twilight -> golden hour -> full day. */
+    .cell.sun-night {
       color: rgba(255,255,255,.34);
-      background: rgba(3,6,16,.42);
+      background: rgba(3,6,16,.46);
     }
 
-    .cell.morning {
-      background: rgba(255,205,150,.085);
+    .cell.sun-twilight {
+      color: rgba(255,255,255,.62);
+      background: rgba(120,120,200,.13);
     }
 
-    .cell.work {
-      background: rgba(150,232,185,.11);
+    .cell.sun-golden {
+      background: rgba(255,176,92,.16);
     }
 
-    .cell.evening {
-      background: rgba(196,168,255,.085);
+    .cell.sun-day {
+      background: rgba(150,232,185,.10);
     }
 
     /* "Other day" veil: cells on the previous/next calendar day get a faint
@@ -1164,6 +1165,21 @@
     .toolbar { animation: gt-rise .55s .06s var(--ease) both; }
     .board   { animation: gt-rise .6s .12s var(--ease) both; }
 
+    /* Ambient mood veil — tints the whole scene by the sun phase at the selected
+       time (warm at golden hour, deep at night). Crossfades smoothly. */
+    .mood-veil {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-color: transparent;
+      transition: background-color 1.4s var(--ease);
+    }
+    body[data-mood="day"]      .mood-veil { background-color: rgba(150,200,255,.05); }
+    body[data-mood="golden"]   .mood-veil { background-color: rgba(255,150,60,.11); }
+    body[data-mood="twilight"] .mood-veil { background-color: rgba(120,90,210,.13); }
+    body[data-mood="night"]    .mood-veil { background-color: rgba(4,8,26,.42); }
+
     /* Ambient living aurora — slow drifting light behind the glass. */
     .aurora {
       position: fixed;
@@ -1293,6 +1309,7 @@
 </head>
 <body>
   <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+  <div class="mood-veil" aria-hidden="true"></div>
   <main class="app">
     <header class="nav">
       <section class="brand">
@@ -1314,6 +1331,7 @@
       <section class="actions">
         <button class="glass-btn" id="nowBtn">Ahora</button>
         <button class="glass-btn" id="copyBtn">Copiar</button>
+        <button class="glass-btn" id="shareBtn">Compartir</button>
         <div class="calendar-menu" id="calendarMenu">
           <button class="glass-btn calendar-plus" id="calendarMenuBtn" aria-expanded="false">＋ Guardar</button>
           <div class="calendar-popover" id="calendarPopover" role="menu">
@@ -1400,50 +1418,59 @@
 
     /* Glass Time — data/timezone-library
        Auto-split from the tested bundle. Edit here; run `node src/build.js` to regenerate dist. */
-    const ZONE_LIBRARY = [
 
-      ["Madrid", "Europe/Madrid"],
-      ["Barcelona", "Europe/Madrid"],
-      ["Las Palmas", "Atlantic/Canary"],
-      ["London", "Europe/London"],
-      ["Lisbon", "Europe/Lisbon"],
-      ["Paris", "Europe/Paris"],
-      ["Berlin", "Europe/Berlin"],
-      ["Amsterdam", "Europe/Amsterdam"],
-      ["Rome", "Europe/Rome"],
-      ["Dublin", "Europe/Dublin"],
-      ["Sydney", "Australia/Sydney"],
-      ["Melbourne", "Australia/Melbourne"],
-      ["Brisbane", "Australia/Brisbane"],
-      ["Perth", "Australia/Perth"],
-      ["Auckland", "Pacific/Auckland"],
-      ["Bali", "Asia/Makassar"],
-      ["Singapore", "Asia/Singapore"],
-      ["Bangkok", "Asia/Bangkok"],
-      ["Tokyo", "Asia/Tokyo"],
-      ["Seoul", "Asia/Seoul"],
-      ["Dubai", "Asia/Dubai"],
-      ["Mumbai", "Asia/Kolkata"],
-      ["Hong Kong", "Asia/Hong_Kong"],
-      ["Shanghai", "Asia/Shanghai"],
-      ["New York", "America/New_York"],
-      ["Los Angeles", "America/Los_Angeles"],
-      ["San Francisco", "America/Los_Angeles"],
-      ["Chicago", "America/Chicago"],
-      ["Denver", "America/Denver"],
-      ["Mexico City", "America/Mexico_City"],
-      ["Costa Rica", "America/Costa_Rica"],
-      ["Nicaragua", "America/Managua"],
-      ["Lima", "America/Lima"],
-      ["Bogotá", "America/Bogota"],
-      ["Buenos Aires", "America/Argentina/Buenos_Aires"],
-      ["São Paulo", "America/Sao_Paulo"],
-      ["Toronto", "America/Toronto"],
-      ["Vancouver", "America/Vancouver"],
-      ["UTC", "UTC"]
+    /* [label, IANA timeZone, latitude, longitude] — coords drive the real sun engine. */
+    const ZONE_LIBRARY = [
+      ["Madrid", "Europe/Madrid", 40.42, -3.70],
+      ["Barcelona", "Europe/Madrid", 41.39, 2.17],
+      ["Las Palmas", "Atlantic/Canary", 28.12, -15.44],
+      ["London", "Europe/London", 51.51, -0.13],
+      ["Lisbon", "Europe/Lisbon", 38.72, -9.14],
+      ["Paris", "Europe/Paris", 48.85, 2.35],
+      ["Berlin", "Europe/Berlin", 52.52, 13.40],
+      ["Amsterdam", "Europe/Amsterdam", 52.37, 4.90],
+      ["Rome", "Europe/Rome", 41.90, 12.50],
+      ["Dublin", "Europe/Dublin", 53.35, -6.26],
+      ["Sydney", "Australia/Sydney", -33.87, 151.21],
+      ["Melbourne", "Australia/Melbourne", -37.81, 144.96],
+      ["Brisbane", "Australia/Brisbane", -27.47, 153.03],
+      ["Perth", "Australia/Perth", -31.95, 115.86],
+      ["Auckland", "Pacific/Auckland", -36.85, 174.76],
+      ["Bali", "Asia/Makassar", -8.65, 115.22],
+      ["Singapore", "Asia/Singapore", 1.35, 103.82],
+      ["Bangkok", "Asia/Bangkok", 13.76, 100.50],
+      ["Tokyo", "Asia/Tokyo", 35.68, 139.69],
+      ["Seoul", "Asia/Seoul", 37.57, 126.98],
+      ["Dubai", "Asia/Dubai", 25.20, 55.27],
+      ["Mumbai", "Asia/Kolkata", 19.08, 72.88],
+      ["Hong Kong", "Asia/Hong_Kong", 22.32, 114.17],
+      ["Shanghai", "Asia/Shanghai", 31.23, 121.47],
+      ["New York", "America/New_York", 40.71, -74.01],
+      ["Los Angeles", "America/Los_Angeles", 34.05, -118.24],
+      ["San Francisco", "America/Los_Angeles", 37.77, -122.42],
+      ["Chicago", "America/Chicago", 41.88, -87.63],
+      ["Denver", "America/Denver", 39.74, -104.99],
+      ["Mexico City", "America/Mexico_City", 19.43, -99.13],
+      ["Costa Rica", "America/Costa_Rica", 9.93, -84.08],
+      ["Nicaragua", "America/Managua", 12.11, -86.24],
+      ["Lima", "America/Lima", -12.05, -77.04],
+      ["Bogotá", "America/Bogota", 4.71, -74.07],
+      ["Buenos Aires", "America/Argentina/Buenos_Aires", -34.60, -58.38],
+      ["São Paulo", "America/Sao_Paulo", -23.55, -46.63],
+      ["Toronto", "America/Toronto", 43.65, -79.38],
+      ["Vancouver", "America/Vancouver", 49.28, -123.12],
+      ["UTC", "UTC", 0, 0]
     ];
 
     const COLORS = ["#9fd7ff", "#d9b8ff", "#bdf7d2", "#ffd2b7", "#ffb5df", "#c6d4ff"];
+
+    /* Coordinate lookups for the sun engine. */
+    const COORDS_BY_LABEL = {};
+    const COORDS_BY_TZ = {};
+    ZONE_LIBRARY.forEach(([label, tz, lat, lon]) => {
+      COORDS_BY_LABEL[label] = [lat, lon];
+      if (!(tz in COORDS_BY_TZ)) COORDS_BY_TZ[tz] = [lat, lon];
+    });
 
     /* ===== core/date-utils.js ===== */
 
@@ -1606,6 +1633,76 @@
       return `GMT${sign}${h}${m ? ":" + pad(m) : ""}`;
     }
 
+    /* ===== core/sun-engine.js ===== */
+
+    /* Glass Time — core/sun-engine
+       Real solar position (no API): given an instant + lat/lon, returns the sun's
+       altitude in degrees, which we classify into day / golden / twilight / night.
+       Algorithm adapted from the standard SunCalc approach. */
+
+    const RAD = Math.PI / 180;
+    const OBLIQUITY = RAD * 23.4397;
+
+    function toDays(date) {
+      return date.valueOf() / 86400000 - 0.5 + 2440588 - 2451545; // days since J2000
+    }
+
+    function solarMeanAnomaly(d) {
+      return RAD * (357.5291 + 0.98560028 * d);
+    }
+
+    function eclipticLongitude(M) {
+      const C = RAD * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+      const P = RAD * 102.9372; // perihelion of Earth
+      return M + C + P + Math.PI;
+    }
+
+    /* Sun altitude (degrees above the horizon) at a UTC instant for lat/lon. */
+    function sunAltitude(date, lat, lon) {
+      const d = toDays(date);
+      const M = solarMeanAnomaly(d);
+      const L = eclipticLongitude(M);
+      const dec = Math.asin(Math.sin(L) * Math.sin(OBLIQUITY));
+      const ra = Math.atan2(Math.sin(L) * Math.cos(OBLIQUITY), Math.cos(L));
+      const lw = RAD * -lon;
+      const phi = RAD * lat;
+      const th = RAD * (280.16 + 360.9856235 * d) - lw; // sidereal time
+      const H = th - ra; // hour angle
+      const alt = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
+      return alt / RAD;
+    }
+
+    /* Phase name from altitude — used for cell tints and ambient mood. */
+    function sunPhase(altitudeDeg) {
+      if (altitudeDeg >= 6) return "day";
+      if (altitudeDeg >= -0.833) return "golden";   // sun near/just below horizon
+      if (altitudeDeg >= -12) return "twilight";     // civil + nautical
+      return "night";
+    }
+
+    /* Resolve coordinates for a zone: prefer its city, then its timezone, then a
+       rough longitude from the current UTC offset (lat 0). Never throws. */
+    function coordsFor(zone, atDate) {
+      if (typeof zone.lat === "number" && typeof zone.lon === "number") return [zone.lat, zone.lon];
+      if (zone.label && COORDS_BY_LABEL[zone.label]) return COORDS_BY_LABEL[zone.label];
+      if (zone.timeZone && COORDS_BY_TZ[zone.timeZone]) return COORDS_BY_TZ[zone.timeZone];
+      const mins = offsetMinutes(atDate || new Date(), zone.timeZone);
+      return [0, Math.max(-180, Math.min(180, mins / 4))];
+    }
+
+    /* UTC offset in minutes for a timezone at a given instant. */
+    function offsetMinutes(date, timeZone) {
+      const p = getParts(date, timeZone);
+      const localAsUTC = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
+      return Math.round((localAsUTC - date.getTime()) / 60000);
+    }
+
+    /* Convenience: the sun phase for a zone at a UTC instant. */
+    function zonePhaseAt(zone, instant) {
+      const [lat, lon] = coordsFor(zone, instant);
+      return sunPhase(sunAltitude(instant, lat, lon));
+    }
+
     /* ===== state/store.js ===== */
 
     /* Glass Time — state/store
@@ -1631,6 +1728,7 @@
       nextBtn: document.getElementById("nextBtn"),
       nowBtn: document.getElementById("nowBtn"),
       copyBtn: document.getElementById("copyBtn"),
+      shareBtn: document.getElementById("shareBtn"),
       calendarMenu: document.getElementById("calendarMenu"),
       calendarMenuBtn: document.getElementById("calendarMenuBtn"),
       calendarPopover: document.getElementById("calendarPopover"),
@@ -1999,16 +2097,13 @@
           prevISO = localISO;
           const dateLabel = `${fmtDate(p)}${dayShift ? ` · ${dayShift}` : ""}`;
           const selected = cellSelected(h, range);
-          const night = p.hour < 6 || p.hour >= 22;
-          const morning = p.hour >= 6 && p.hour < 10;
-          const work = p.hour >= 10 && p.hour < 18;
-          const evening = p.hour >= 18 && p.hour < 22;
+          const phase = zonePhaseAt(zone, instant); // real sun: day / golden / twilight / night
           const otherDay = dayShift === "-1" ? "prev-day" : dayShift === "+1" ? "next-day" : "";
           const nowClass = isToday && h === baseNow.hour ? "now" : "";
           const cursor = h === slotHour(state.cursorSlot);
 
           return `
-            <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} ${night ? "night" : ""} ${morning ? "morning" : ""} ${work ? "work" : ""} ${evening ? "evening" : ""} ${otherDay} ${dayStart ? "day-start" : ""} ${nowClass}"
+            <div class="cell ${selected ? "selected" : ""} ${cursor ? "cursor" : ""} sun-${phase} ${otherDay} ${dayStart ? "day-start" : ""} ${nowClass}"
               data-hour="${h}"
               data-date="${escapeHTML(dateLabel)}"
               title="${escapeHTML(zone.label)}: ${fmtDate(p)} ${fmtDisplayTime(p.hour)}">
@@ -2061,6 +2156,13 @@
       els.selectedSummary.textContent = `${duration} seleccionadas`;
       els.selectedDateChip.textContent = `${base.label} · ${fmtDate(baseStart)} · ${baseRange}`;
       els.durationLabel.textContent = `Seleccionado · ${duration}`;
+      updateMood(startInstant);
+    }
+
+    /* Ambient mood: tint the whole scene by the sun phase at the base city for the
+       selected time — warm at golden hour, deep at night. Updates live while dragging. */
+    function updateMood(instant) {
+      document.body.dataset.mood = zonePhaseAt(baseZone(), instant || selectedInstant());
     }
 
     /* Patch selection styling on the existing DOM — no rebuild, no scroll loss.
@@ -2319,6 +2421,187 @@
       setCalendarMenu(!state.calendarMenuOpen);
     }
 
+    /* ===== ui/share.js ===== */
+
+    /* Glass Time — ui/share
+       Shareable state: a URL that encodes the current selection, and a glass image
+       card (canvas -> PNG) shared via the Web Share API or downloaded. */
+
+    function buildShareURL() {
+      const { start, end } = normalizedRange();
+      const params = new URLSearchParams();
+      params.set("d", state.dateISO);
+      params.set("s", start);
+      params.set("e", end);
+      params.set("z", state.zones.map(z => `${z.label}~${z.timeZone}`).join(";"));
+      return `${location.origin}${location.pathname}?${params.toString()}`;
+    }
+
+    /* Apply state encoded in the URL (if any). Returns true when applied. */
+    function applyStateFromURL() {
+      const p = new URLSearchParams(location.search);
+      if (!p.has("z") && !p.has("d")) return false;
+      try {
+        const z = p.get("z");
+        if (z) {
+          const zones = z.split(";").map(item => {
+            const sep = item.indexOf("~");
+            const label = item.slice(0, sep);
+            const timeZone = item.slice(sep + 1);
+            return { id: id(), label, timeZone };
+          }).filter(zone => zone.timeZone);
+          if (zones.length) state.zones = zones;
+        }
+        if (p.get("d")) state.dateISO = p.get("d");
+        const s = parseInt(p.get("s"), 10);
+        const e = parseInt(p.get("e"), 10);
+        if (Number.isInteger(s)) state.selectedStartSlot = clampSlot(s);
+        if (Number.isInteger(e)) state.selectedEndSlot = clampSlot(e);
+        state.cursorSlot = state.selectedStartSlot;
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function roundRectPath(ctx, px, py, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(px + r, py);
+      ctx.arcTo(px + w, py, px + w, py + h, r);
+      ctx.arcTo(px + w, py + h, px, py + h, r);
+      ctx.arcTo(px, py + h, px, py, r);
+      ctx.arcTo(px, py, px + w, py, r);
+      ctx.closePath();
+    }
+
+    /* Render a premium glass card summarising the selection across all cities. */
+    function buildShareCanvas() {
+      const W = 1080, H = 1350;
+      const c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const x = c.getContext("2d");
+
+      // Background
+      const bg = x.createLinearGradient(0, 0, W, H);
+      bg.addColorStop(0, "#080a16");
+      bg.addColorStop(0.6, "#10152a");
+      bg.addColorStop(1, "#181d38");
+      x.fillStyle = bg; x.fillRect(0, 0, W, H);
+      const glow1 = x.createRadialGradient(W * 0.16, H * 0.08, 0, W * 0.16, H * 0.08, W * 0.7);
+      glow1.addColorStop(0, "rgba(115,198,255,.34)"); glow1.addColorStop(1, "rgba(115,198,255,0)");
+      x.fillStyle = glow1; x.fillRect(0, 0, W, H);
+      const glow2 = x.createRadialGradient(W * 0.9, H * 0.95, 0, W * 0.9, H * 0.95, W * 0.7);
+      glow2.addColorStop(0, "rgba(255,181,223,.24)"); glow2.addColorStop(1, "rgba(255,181,223,0)");
+      x.fillStyle = glow2; x.fillRect(0, 0, W, H);
+
+      const base = baseZone();
+      const startInstant = selectedInstant();
+      const endInstant = selectedEndInstant();
+      const baseStart = getParts(startInstant, base.timeZone);
+      const baseEnd = getParts(endInstant, base.timeZone);
+      const { durationSlots } = normalizedRange();
+
+      const pad = 84;
+      let y = 150;
+
+      // Brand
+      x.fillStyle = "rgba(255,255,255,.62)";
+      x.font = "600 30px -apple-system, Inter, Segoe UI, sans-serif";
+      x.textBaseline = "alphabetic";
+      x.fillText("G L A S S   T I M E", pad, y);
+
+      // Headline
+      y += 110;
+      x.fillStyle = "#ffffff";
+      x.font = "800 116px -apple-system, Inter, Segoe UI, sans-serif";
+      x.fillText(durationText(durationSlots), pad, y);
+
+      y += 70;
+      x.fillStyle = "rgba(255,255,255,.82)";
+      x.font = "600 44px -apple-system, Inter, Segoe UI, sans-serif";
+      x.fillText(`${base.label} · ${fmtDisplayTime(baseStart.hour, baseStart.minute)}–${fmtDisplayTime(baseEnd.hour, baseEnd.minute)}`, pad, y);
+
+      y += 56;
+      x.fillStyle = "rgba(255,255,255,.5)";
+      x.font = "500 34px -apple-system, Inter, Segoe UI, sans-serif";
+      x.fillText(new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: base.timeZone }).format(startInstant), pad, y);
+
+      // City rows
+      y += 96;
+      const rowH = 132;
+      const colors = COLORS;
+      state.zones.forEach((zone, i) => {
+        if (y + rowH > H - 130) return; // keep within the card
+        roundRectPath(x, pad, y - 60, W - pad * 2, rowH - 24, 28);
+        x.fillStyle = "rgba(255,255,255,.05)";
+        x.fill();
+
+        // color dot
+        x.fillStyle = colors[i % colors.length];
+        x.beginPath(); x.arc(pad + 44, y, 16, 0, Math.PI * 2); x.fill();
+
+        const s = getParts(startInstant, zone.timeZone);
+        const e = getParts(endInstant, zone.timeZone);
+
+        x.fillStyle = "#ffffff";
+        x.font = "700 42px -apple-system, Inter, Segoe UI, sans-serif";
+        x.fillText(zone.label, pad + 84, y + 4);
+
+        x.fillStyle = "rgba(255,255,255,.55)";
+        x.font = "500 28px -apple-system, Inter, Segoe UI, sans-serif";
+        x.fillText(zone.timeZone, pad + 84, y + 40);
+
+        const range = `${fmtDisplayTime(s.hour, s.minute)}–${fmtDisplayTime(e.hour, e.minute)}`;
+        x.fillStyle = "rgba(255,255,255,.92)";
+        x.font = "700 42px -apple-system, Inter, Segoe UI, sans-serif";
+        x.textAlign = "right";
+        x.fillText(range, W - pad - 24, y + 4);
+        x.fillStyle = "rgba(255,255,255,.5)";
+        x.font = "500 28px -apple-system, Inter, Segoe UI, sans-serif";
+        x.fillText(offsetText(startInstant, zone.timeZone), W - pad - 24, y + 40);
+        x.textAlign = "left";
+
+        y += rowH;
+      });
+
+      // Footer
+      x.fillStyle = "rgba(255,255,255,.4)";
+      x.font = "500 30px -apple-system, Inter, Segoe UI, sans-serif";
+      x.fillText("peperonioo.github.io/glass-time-converter", pad, H - 70);
+
+      return c;
+    }
+
+    async function shareSelection() {
+      const url = buildShareURL();
+      const canvas = buildShareCanvas();
+      canvas.toBlob(async blob => {
+        const file = blob && new File([blob], `glass-time-${state.dateISO}.png`, { type: "image/png" });
+        if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: "Glass Time",
+              text: `Hora seleccionada · ${baseZone().label}`,
+              url
+            });
+            return;
+          } catch { /* user cancelled or unsupported — fall through */ }
+        }
+        if (blob) {
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = file.name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(a.href);
+        }
+        navigator.clipboard?.writeText(url);
+        showToast("Imagen guardada · link copiado");
+      }, "image/png");
+    }
+
     /* ===== main.js ===== */
 
     /* Glass Time — main (misc actions + wiring + bootstrap)
@@ -2374,6 +2657,7 @@
 
       els.nowBtn.addEventListener("click", jumpNow);
       els.copyBtn.addEventListener("click", copySelection);
+      els.shareBtn.addEventListener("click", shareSelection);
 
       els.calendarMenuBtn.addEventListener("click", event => {
         event.stopPropagation();
@@ -2502,6 +2786,12 @@
     /* ---------- bootstrap ---------- */
 
     load();
+    // A shared link overrides stored state, then we clean the URL so refreshes use
+    // the (now-persisted) state normally.
+    if (applyStateFromURL()) {
+      save();
+      history.replaceState(null, "", location.origin + location.pathname);
+    }
     bindEvents();
     render();
     setTimeout(focusHour, 160);

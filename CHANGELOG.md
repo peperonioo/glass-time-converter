@@ -2,6 +2,30 @@
 
 All notable changes to Glass Time.
 
+## [0.9.0] — 2026-06-25
+
+### Added — Tier 1: real sun, reactive mood, sharing
+
+- **Real sun engine.** Day/night tints are no longer fixed clock bands — they
+  come from the **actual solar altitude** at each city's coordinates for the
+  selected date (pure astronomy, no API). Cells read as night → twilight →
+  golden hour → full day, matching reality (e.g. Sydney's short winter day,
+  Madrid's long summer day, New York's sunset golden hour). Coordinates were
+  added to the timezone library; unknown zones fall back to a longitude derived
+  from their UTC offset.
+- **Ambient mood.** The whole scene gently tints to the sun phase at the base
+  city for the selected time — warm at golden hour, deep blue at night, clear by
+  day — and crossfades live as you drag the selection.
+- **Share.** A new "Compartir" action generates a premium **glass image card**
+  (canvas → PNG) of the selection across all cities and a **link that encodes the
+  full state** (`?d=&s=&e=&z=`). Uses the Web Share API where available, else
+  downloads the PNG and copies the link. Opening a shared link restores the
+  cities, date and range, then cleans the URL.
+
+### Internal
+
+- New modules `core/sun-engine.js` and `ui/share.js` (build order updated).
+
 ## [0.8.0] — 2026-06-25
 
 ### Added — "living" UI (elegant, smooth, ambient)
