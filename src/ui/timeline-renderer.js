@@ -153,6 +153,7 @@ function renderRows() {
             <div class="city-line">
               <div class="city-name">${escapeHTML(zone.label)}</div>
               ${index === 0 ? `<span class="base-tag">Base</span>` : ""}
+              ${index > 0 ? `<span class="rel-offset" title="Diferencia con ${escapeHTML(base.label)}">${relOffsetText(now, zone.timeZone, base.timeZone)}</span>` : ""}
               <div class="offset">${offset}</div>
             </div>
             <div class="current-time">Ahora · ${fmtDisplayTime(current.hour, current.minute)}</div>

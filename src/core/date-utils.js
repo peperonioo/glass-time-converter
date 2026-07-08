@@ -83,7 +83,8 @@ function durationText(slots) {
 }
 
 function fmtDate(p) {
-  return `${p.weekday} ${pad(p.day)}/${pad(p.month)}`;
+  const wd = p.weekday ? p.weekday.charAt(0).toUpperCase() + p.weekday.slice(1) : "";
+  return `${wd} ${pad(p.day)}/${pad(p.month)}`;
 }
 
 function cellWidthPx() {

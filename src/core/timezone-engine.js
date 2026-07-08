@@ -4,25 +4,35 @@
    Auto-split from the tested bundle. Edit here; run `node src/build.js` to regenerate dist. */
 /* ---------- timezone-engine ---------- */
 
-function getParts(date, timeZone) {
-  const formatter = new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    weekday: "short",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23"
-  });
+/* One cached formatter per zone — getParts runs 100+ times per render. */
+const _partsFormatters = new Map();
 
+function _partsFormatter(timeZone) {
+  let f = _partsFormatters.get(timeZone);
+  if (!f) {
+    f = new Intl.DateTimeFormat("es-ES", {
+      timeZone,
+      weekday: "short",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23"
+    });
+    _partsFormatters.set(timeZone, f);
+  }
+  return f;
+}
+
+function getParts(date, timeZone) {
   const out = {};
-  formatter.formatToParts(date).forEach(part => {
+  _partsFormatter(timeZone).formatToParts(date).forEach(part => {
     if (part.type !== "literal") out[part.type] = part.value;
   });
 
   return {
-    weekday: out.weekday,
+    weekday: (out.weekday || "").replace(/\.$/, ""), // es-ES may emit "jue."
     year: Number(out.year),
     month: Number(out.month),
     day: Number(out.day),
@@ -67,4 +77,16 @@ function offsetText(date, timeZone) {
   const h = Math.floor(abs / 60);
   const m = abs % 60;
   return `GMT${sign}${h}${m ? ":" + pad(m) : ""}`;
+}
+
+/* Hours difference vs the base city, e.g. "+8h", "−5:30", "±0h".
+   (offsetMinutes lives in core/sun-engine — resolved at call time.) */
+function relOffsetText(date, timeZone, baseTimeZone) {
+  const diff = offsetMinutes(date, timeZone) - offsetMinutes(date, baseTimeZone);
+  if (!diff) return "±0h";
+  const sign = diff > 0 ? "+" : "−";
+  const abs = Math.abs(diff);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return m ? `${sign}${h}:${pad(m)}` : `${sign}${h}h`;
 }

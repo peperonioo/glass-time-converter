@@ -420,9 +420,10 @@
       min-height: 74px;
       padding: 16px 18px;
       border-right: 1px solid var(--line);
+      /* Fully opaque: scrolled cells must never ghost through the sticky column. */
       background:
         linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)),
-        rgba(12, 16, 30, .94);
+        rgb(13, 17, 30);
     }
 
     .left-head strong {
@@ -571,9 +572,10 @@
       min-height: var(--row);
       padding: 10px 12px;
       border-right: 1px solid var(--line);
+      /* Fully opaque: scrolled cells must never ghost through the sticky column. */
       background:
         linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)),
-        rgba(14, 18, 32, .94);
+        rgb(15, 19, 33);
       display: flex;
       align-items: center;
       gap: 11px;
@@ -585,13 +587,13 @@
     .city-card:hover {
       background:
         linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04)),
-        rgba(14, 18, 32, .94);
+        rgb(15, 19, 33);
     }
 
     .city-card.anchor {
       background:
         linear-gradient(90deg, rgba(159,215,255,.16), rgba(217,184,255,.07)),
-        rgba(14, 18, 32, .94);
+        rgb(15, 19, 33);
     }
 
     .city-glow {
@@ -643,6 +645,46 @@
       font-size: 11px;
       flex: 0 0 auto;
       margin-left: auto;
+    }
+
+    /* Hours difference vs the base city, e.g. "+8h" — the number people
+       actually think in. Base row shows the Base tag instead. */
+    .rel-offset {
+      flex: 0 0 auto;
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 740;
+      letter-spacing: .01em;
+      color: rgba(159,215,255,.92);
+      background: rgba(159,215,255,.10);
+      border: 1px solid rgba(159,215,255,.20);
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
+    .rel-offset + .offset {
+      margin-left: 8px;
+    }
+
+    /* Row reordering: lifted row follows the pointer, the rest glide aside. */
+    body.reordering {
+      cursor: grabbing;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body.reordering #rows .row {
+      transition: transform .18s var(--ease);
+    }
+
+    #rows .row.lifting {
+      transition: none;
+      position: relative;
+      z-index: 30;
+      background: rgba(18, 24, 44, .92);
+      box-shadow: 0 16px 44px rgba(0,0,0,.45);
+      outline: 1px solid rgba(255,255,255,.16);
+      border-radius: 14px;
     }
 
     .current-time {
@@ -1214,17 +1256,31 @@
       /* The left panel already says "Base · …", so free the row for the name. */
       .base-tag { display: none; }
 
-      /* Offset to the top-right corner so the city name keeps the full line
-         (only the name line reserves space; time/zone lines use full width). */
-      .city-line { padding-right: 32px; }
-      .current-time, .zone-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .offset {
+      /* Corner badge keeps the city name on a full line: non-base rows show the
+         hours-vs-base chip (the number people think in); the base row keeps its
+         GMT. Full GMT for every zone stays visible in the picker. */
+      .city-line { padding-right: 40px; }
+
+      .offset { display: none; }
+
+      #rows .row:first-child .offset {
+        display: block;
         position: absolute;
-        top: 10px;
+        top: 9px;
         right: 9px;
         margin: 0;
         font-size: 9px;
       }
+
+      .rel-offset {
+        position: absolute;
+        top: 9px;
+        right: 9px;
+        margin: 0;
+        font-size: 9px;
+        padding: 1px 5px;
+      }
+      .current-time, .zone-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
       .zone-name {
         font-size: 10px;
@@ -1585,6 +1641,36 @@
       if (!(tz in COORDS_BY_TZ)) COORDS_BY_TZ[tz] = [lat, lon];
     });
 
+    /* "America/Argentina/Buenos_Aires" -> "Buenos Aires" */
+    function prettifyZone(timeZone) {
+      const last = String(timeZone).split("/").pop() || timeZone;
+      return last.replace(/_/g, " ");
+    }
+
+    /* Best label for an IANA zone: curated name first, else prettified city. */
+    function labelForZone(timeZone) {
+      const hit = ZONE_LIBRARY.find(z => z[1] === timeZone);
+      return hit ? hit[0] : prettifyZone(timeZone);
+    }
+
+    /* Full IANA zone list (~418) from the runtime — no data shipped, no API.
+       Lazily built; falls back to the curated library on old engines. */
+    let FULL_ZONES = null;
+    function fullZoneList() {
+      if (FULL_ZONES) return FULL_ZONES;
+      let names = [];
+      try { names = Intl.supportedValuesOf("timeZone"); } catch { names = []; }
+      FULL_ZONES = names
+        .filter(n => n.includes("/") && !n.startsWith("Etc/"))
+        .map(n => [prettifyZone(n), n]);
+      return FULL_ZONES;
+    }
+
+    /* Accent-insensitive search normalization ("Bogotá" -> "bogota"). */
+    function normSearch(s) {
+      return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    }
+
     /* ===== core/date-utils.js ===== */
 
     /* Glass Time — core/date-utils
@@ -1670,7 +1756,8 @@
     }
 
     function fmtDate(p) {
-      return `${p.weekday} ${pad(p.day)}/${pad(p.month)}`;
+      const wd = p.weekday ? p.weekday.charAt(0).toUpperCase() + p.weekday.slice(1) : "";
+      return `${wd} ${pad(p.day)}/${pad(p.month)}`;
     }
 
     function cellWidthPx() {
@@ -1684,25 +1771,35 @@
        Auto-split from the tested bundle. Edit here; run `node src/build.js` to regenerate dist. */
     /* ---------- timezone-engine ---------- */
 
-    function getParts(date, timeZone) {
-      const formatter = new Intl.DateTimeFormat("en-GB", {
-        timeZone,
-        weekday: "short",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23"
-      });
+    /* One cached formatter per zone — getParts runs 100+ times per render. */
+    const _partsFormatters = new Map();
 
+    function _partsFormatter(timeZone) {
+      let f = _partsFormatters.get(timeZone);
+      if (!f) {
+        f = new Intl.DateTimeFormat("es-ES", {
+          timeZone,
+          weekday: "short",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23"
+        });
+        _partsFormatters.set(timeZone, f);
+      }
+      return f;
+    }
+
+    function getParts(date, timeZone) {
       const out = {};
-      formatter.formatToParts(date).forEach(part => {
+      _partsFormatter(timeZone).formatToParts(date).forEach(part => {
         if (part.type !== "literal") out[part.type] = part.value;
       });
 
       return {
-        weekday: out.weekday,
+        weekday: (out.weekday || "").replace(/\.$/, ""), // es-ES may emit "jue."
         year: Number(out.year),
         month: Number(out.month),
         day: Number(out.day),
@@ -1747,6 +1844,18 @@
       const h = Math.floor(abs / 60);
       const m = abs % 60;
       return `GMT${sign}${h}${m ? ":" + pad(m) : ""}`;
+    }
+
+    /* Hours difference vs the base city, e.g. "+8h", "−5:30", "±0h".
+       (offsetMinutes lives in core/sun-engine — resolved at call time.) */
+    function relOffsetText(date, timeZone, baseTimeZone) {
+      const diff = offsetMinutes(date, timeZone) - offsetMinutes(date, baseTimeZone);
+      if (!diff) return "±0h";
+      const sign = diff > 0 ? "+" : "−";
+      const abs = Math.abs(diff);
+      const h = Math.floor(abs / 60);
+      const m = abs % 60;
+      return m ? `${sign}${h}:${pad(m)}` : `${sign}${h}h`;
     }
 
     /* ===== core/sun-engine.js ===== */
@@ -1930,13 +2039,25 @@
       } catch { /* storage may be unavailable (private mode); ignore */ }
     }
 
-    function load() {
-      const fallback = [
-        { id: id(), label: "Sydney", timeZone: "Australia/Sydney" },
-        { id: id(), label: "Madrid", timeZone: "Europe/Madrid" },
-        { id: id(), label: "New York", timeZone: "America/New_York" },
-        { id: id(), label: "Bali", timeZone: "Asia/Makassar" }
+    /* First run: the user's own timezone becomes the base city, followed by a
+       useful default trio (skipping duplicates of the user's zone). */
+    function defaultZones() {
+      let userTz = "UTC";
+      try { userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { /* keep UTC */ }
+      const picks = [
+        [labelForZone(userTz), userTz],
+        ["New York", "America/New_York"],
+        ["London", "Europe/London"],
+        ["Tokyo", "Asia/Tokyo"]
       ];
+      const seen = new Set();
+      return picks
+        .filter(([, tz]) => !seen.has(tz) && seen.add(tz))
+        .map(([label, timeZone]) => ({ id: id(), label, timeZone }));
+    }
+
+    function load() {
+      const fallback = defaultZones();
 
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -2233,6 +2354,7 @@
                 <div class="city-line">
                   <div class="city-name">${escapeHTML(zone.label)}</div>
                   ${index === 0 ? `<span class="base-tag">Base</span>` : ""}
+                  ${index > 0 ? `<span class="rel-offset" title="Diferencia con ${escapeHTML(base.label)}">${relOffsetText(now, zone.timeZone, base.timeZone)}</span>` : ""}
                   <div class="offset">${offset}</div>
                 </div>
                 <div class="current-time">Ahora · ${fmtDisplayTime(current.hour, current.minute)}</div>
@@ -2444,6 +2566,165 @@
       save();
     }
 
+    /* ===== ui/reorder.js ===== */
+
+    /* Glass Time — ui/reorder
+       Drag a city card vertically to reorder rows. Mouse: drag past a small
+       vertical threshold. Touch: hold ~220ms to lift (a quick vertical swipe still
+       scrolls the page), then drag. Dropping into position 0 makes that city the
+       base, preserving the selected real-world instant. */
+
+    const rowDrag = {
+      active: false,
+      lifted: false,
+      pointerId: null,
+      pointerType: "",
+      row: null,
+      startX: 0,
+      startY: 0,
+      holdTimer: null,
+      rows: [],
+      mids: [],
+      fromIndex: 0,
+      target: 0,
+      rowH: 0,
+      instant: null,
+      baseId: null,
+      suppressClick: false
+    };
+
+    function rowDragClearHold() {
+      if (rowDrag.holdTimer) {
+        clearTimeout(rowDrag.holdTimer);
+        rowDrag.holdTimer = null;
+      }
+    }
+
+    function liftRow() {
+      rowDrag.lifted = true;
+      rowDrag.suppressClick = true;
+      rowDrag.rows = [...els.rows.querySelectorAll(".row")];
+      rowDrag.fromIndex = rowDrag.rows.indexOf(rowDrag.row);
+      rowDrag.target = rowDrag.fromIndex;
+      rowDrag.mids = rowDrag.rows.map(r => {
+        const b = r.getBoundingClientRect();
+        return b.top + b.height / 2;
+      });
+      rowDrag.rowH = rowDrag.row.getBoundingClientRect().height;
+      rowDrag.instant = selectedInstant();
+      rowDrag.baseId = state.zones[0] ? state.zones[0].id : null;
+      document.body.classList.add("reordering");
+      rowDrag.row.classList.add("lifting");
+      navigator.vibrate?.(15);
+    }
+
+    function followRow(clientY) {
+      rowDrag.row.style.transform = `translateY(${clientY - rowDrag.startY}px)`;
+
+      // Insertion index = how many *other* rows' (original) midpoints sit above the pointer.
+      let t = 0;
+      rowDrag.mids.forEach((m, i) => {
+        if (i !== rowDrag.fromIndex && m < clientY) t++;
+      });
+      rowDrag.target = Math.max(0, Math.min(rowDrag.rows.length - 1, t));
+
+      rowDrag.rows.forEach((r, i) => {
+        if (r === rowDrag.row) return;
+        let shift = 0;
+        if (i > rowDrag.fromIndex && i <= rowDrag.target) shift = -rowDrag.rowH;
+        else if (i < rowDrag.fromIndex && i >= rowDrag.target) shift = rowDrag.rowH;
+        r.style.transform = shift ? `translateY(${shift}px)` : "";
+      });
+    }
+
+    function dropRow() {
+      const { fromIndex, target } = rowDrag;
+      document.body.classList.remove("reordering");
+      rowDrag.row.classList.remove("lifting");
+      rowDrag.row.style.transform = "";
+      rowDrag.rows.forEach(r => { r.style.transform = ""; });
+      rowDrag.lifted = false;
+
+      if (target === fromIndex) return; // nothing moved
+
+      const [zone] = state.zones.splice(fromIndex, 1);
+      state.zones.splice(target, 0, zone);
+
+      // New base? Re-express the selected instant in its wall time (same rule as
+      // moveZoneToBase) so the absolute selection never shifts.
+      if (state.zones[0] && state.zones[0].id !== rowDrag.baseId && rowDrag.instant) {
+        const duration = normalizedRange().durationSlots;
+        const p = getParts(rowDrag.instant, state.zones[0].timeZone);
+        const startSlot = p.hour * 2 + (p.minute >= 30 ? 1 : 0);
+        state.dateISO = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+        state.selectedStartSlot = startSlot;
+        state.selectedEndSlot = clampSlot(startSlot + duration);
+        state.cursorSlot = startSlot;
+      }
+
+      render();
+      showToast(target === 0 ? `${zone.label} ahora es la base.` : `${zone.label} reordenada.`);
+    }
+
+    function initRowReorder() {
+      els.rows.addEventListener("pointerdown", event => {
+        const card = event.target.closest(".city-card");
+        if (!card || event.target.closest(".mini-btn")) return;
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        rowDrag.active = true;
+        rowDrag.lifted = false;
+        rowDrag.suppressClick = false;
+        rowDrag.row = card.closest(".row");
+        rowDrag.pointerId = event.pointerId;
+        rowDrag.pointerType = event.pointerType;
+        rowDrag.startX = event.clientX;
+        rowDrag.startY = event.clientY;
+        rowDragClearHold();
+        if (event.pointerType === "touch") {
+          rowDrag.holdTimer = setTimeout(() => {
+            if (rowDrag.active && !rowDrag.lifted) liftRow();
+          }, 220);
+        }
+      });
+
+      document.addEventListener("pointermove", event => {
+        if (!rowDrag.active) return;
+        const dx = event.clientX - rowDrag.startX;
+        const dy = event.clientY - rowDrag.startY;
+
+        if (!rowDrag.lifted) {
+          if (rowDrag.pointerType === "touch") {
+            // Moved before the hold fired => it's a page scroll; bail out.
+            if (Math.hypot(dx, dy) > 10) {
+              rowDragClearHold();
+              rowDrag.active = false;
+            }
+            return;
+          }
+          // Mouse/pen: a mostly-vertical drag lifts the row.
+          if (Math.abs(dy) <= 6 || Math.abs(dy) < Math.abs(dx)) return;
+          liftRow();
+        }
+
+        event.preventDefault();
+        followRow(event.clientY);
+      }, { passive: false });
+
+      const endRowDrag = () => {
+        if (!rowDrag.active) return;
+        rowDragClearHold();
+        if (rowDrag.lifted) dropRow();
+        rowDrag.active = false;
+      };
+      document.addEventListener("pointerup", endRowDrag);
+      document.addEventListener("pointercancel", endRowDrag);
+
+      // While a row is lifted on touch, block native panning so the drag reorders.
+      document.addEventListener("touchmove", event => {
+        if (rowDrag.lifted) event.preventDefault();
+      }, { passive: false });
+    }
+
     /* ===== ui/timezone-picker.js ===== */
 
     /* Glass Time — ui/timezone-picker
@@ -2474,13 +2755,19 @@
     }
 
     function renderZoneOptions(query) {
-      const q = query.trim().toLowerCase();
+      const q = normSearch(query.trim());
       const now = new Date();
+      const hit = ([label, timeZone]) => !q || normSearch(`${label} ${timeZone}`).includes(q);
 
-      const matches = ZONE_LIBRARY.filter(([label, timeZone]) => {
-        const text = `${label} ${timeZone}`.toLowerCase();
-        return !q || text.includes(q);
-      });
+      // Curated cities first; with a query, extend into the full IANA list (~418
+      // zones from the runtime) skipping timezones the curated hits already cover.
+      const curated = ZONE_LIBRARY.filter(hit);
+      let matches = curated;
+      if (q) {
+        const seenTz = new Set(curated.map(z => z[1]));
+        const extra = fullZoneList().filter(z => !seenTz.has(z[1]) && hit(z));
+        matches = curated.concat(extra).slice(0, 60);
+      }
 
       if (!matches.length) {
         els.zoneList.innerHTML = `<div class="zone-empty">Sin resultados para “${escapeHTML(query)}”.</div>`;
@@ -2847,7 +3134,11 @@
       }, { passive: false });
 
       // City card actions (click — not part of the drag system).
+      // Single tap (slightly delayed) opens the picker; a double-tap jumps to "now".
+      const cityTap = { id: null, t: 0, timer: null };
+
       els.rows.addEventListener("click", event => {
+        if (rowDrag.suppressClick) { rowDrag.suppressClick = false; return; } // ended a reorder drag
         const row = event.target.closest(".row");
         if (!row) return;
 
@@ -2874,7 +3165,30 @@
         if (event.target.closest(".cell")) return;
 
         if (event.target.closest(".city-card")) {
-          openPicker("edit", row.dataset.zoneId);
+          const zoneId = row.dataset.zoneId;
+          const now = Date.now();
+
+          if (cityTap.id === zoneId && now - cityTap.t < 320) {
+            // Double-tap: jump the selection to the current instant.
+            clearTimeout(cityTap.timer);
+            cityTap.timer = null;
+            cityTap.id = null;
+            const zone = state.zones.find(z => z.id === zoneId);
+            jumpNow();
+            if (zone) {
+              const c = getParts(new Date(), zone.timeZone);
+              showToast(`Ahora en ${zone.label} · ${fmtDisplayTime(c.hour, c.minute)}`);
+            }
+            return;
+          }
+
+          cityTap.id = zoneId;
+          cityTap.t = now;
+          clearTimeout(cityTap.timer);
+          cityTap.timer = setTimeout(() => {
+            cityTap.id = null;
+            openPicker("edit", zoneId);
+          }, 300);
         }
       });
 
@@ -2932,6 +3246,7 @@
       history.replaceState(null, "", location.origin + location.pathname);
     }
     bindEvents();
+    initRowReorder();
     render();
     setTimeout(focusHour, 160);
 

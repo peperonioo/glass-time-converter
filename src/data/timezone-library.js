@@ -55,3 +55,33 @@ ZONE_LIBRARY.forEach(([label, tz, lat, lon]) => {
   COORDS_BY_LABEL[label] = [lat, lon];
   if (!(tz in COORDS_BY_TZ)) COORDS_BY_TZ[tz] = [lat, lon];
 });
+
+/* "America/Argentina/Buenos_Aires" -> "Buenos Aires" */
+function prettifyZone(timeZone) {
+  const last = String(timeZone).split("/").pop() || timeZone;
+  return last.replace(/_/g, " ");
+}
+
+/* Best label for an IANA zone: curated name first, else prettified city. */
+function labelForZone(timeZone) {
+  const hit = ZONE_LIBRARY.find(z => z[1] === timeZone);
+  return hit ? hit[0] : prettifyZone(timeZone);
+}
+
+/* Full IANA zone list (~418) from the runtime — no data shipped, no API.
+   Lazily built; falls back to the curated library on old engines. */
+let FULL_ZONES = null;
+function fullZoneList() {
+  if (FULL_ZONES) return FULL_ZONES;
+  let names = [];
+  try { names = Intl.supportedValuesOf("timeZone"); } catch { names = []; }
+  FULL_ZONES = names
+    .filter(n => n.includes("/") && !n.startsWith("Etc/"))
+    .map(n => [prettifyZone(n), n]);
+  return FULL_ZONES;
+}
+
+/* Accent-insensitive search normalization ("Bogotá" -> "bogota"). */
+function normSearch(s) {
+  return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}

@@ -15,13 +15,25 @@ function save() {
   } catch { /* storage may be unavailable (private mode); ignore */ }
 }
 
-function load() {
-  const fallback = [
-    { id: id(), label: "Sydney", timeZone: "Australia/Sydney" },
-    { id: id(), label: "Madrid", timeZone: "Europe/Madrid" },
-    { id: id(), label: "New York", timeZone: "America/New_York" },
-    { id: id(), label: "Bali", timeZone: "Asia/Makassar" }
+/* First run: the user's own timezone becomes the base city, followed by a
+   useful default trio (skipping duplicates of the user's zone). */
+function defaultZones() {
+  let userTz = "UTC";
+  try { userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { /* keep UTC */ }
+  const picks = [
+    [labelForZone(userTz), userTz],
+    ["New York", "America/New_York"],
+    ["London", "Europe/London"],
+    ["Tokyo", "Asia/Tokyo"]
   ];
+  const seen = new Set();
+  return picks
+    .filter(([, tz]) => !seen.has(tz) && seen.add(tz))
+    .map(([label, timeZone]) => ({ id: id(), label, timeZone }));
+}
+
+function load() {
+  const fallback = defaultZones();
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

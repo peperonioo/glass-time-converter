@@ -2,6 +2,38 @@
 
 All notable changes to Glass Time.
 
+## [0.10.0] — 2026-07-08
+
+### Added — "the app knows you" + city management
+
+- **Auto base city.** On first run the base city is the user's own timezone
+  (`Intl.DateTimeFormat().resolvedOptions().timeZone`), labeled from the curated
+  library or prettified from the IANA name, followed by New York / London /
+  Tokyo (duplicates skipped).
+- **Full IANA city search.** The picker now searches all ~418 runtime zones
+  (`Intl.supportedValuesOf("timeZone")`) beyond the curated list — accent-
+  insensitive ("bogota" finds "Bogotá"), curated matches first, capped at 60
+  results. No data shipped, no API. Unknown zones get sun-engine coords from
+  their UTC offset (existing fallback).
+- **Hours-vs-base chip.** Every non-base row shows the difference people
+  actually think in: "+8h", "−5:30", "±0h". On phones it replaces the GMT badge
+  in the row corner (base keeps GMT; full GMT stays in the picker).
+- **Drag to reorder cities.** Drag a city card vertically (mouse: just drag;
+  touch: hold ~220ms then drag, with haptic). Dropping into first place makes
+  that city the base, preserving the selected real-world instant. A quick
+  vertical swipe still scrolls.
+- **Double-tap a city → jump to now** (selection moves to the current instant;
+  toast shows that city's local time). Single tap still opens the picker, now
+  ~300ms delayed to disambiguate.
+
+### Changed
+
+- **Dates are now Spanish everywhere** — "Mié 08/07" in header/pins/chips/share
+  (was English "Thu"). Formatter locale is es-ES with per-zone formatter caching
+  (getParts runs 100+ times per render; formatters are now built once per zone).
+- Sticky city column is fully opaque — scrolled cells no longer ghost through.
+- Service-worker cache bumped to v0.10.0.
+
 ## [0.9.5] — 2026-06-25
 
 ### Changed — single scroll container (definitive smooth-scroll fix)

@@ -30,6 +30,7 @@ const MODULES = [
   "ui/cursor-controller.js",
   "ui/timeline-renderer.js",
   "ui/range-selection.js",
+  "ui/reorder.js",
   "ui/timezone-picker.js",
   "ui/calendar-menu.js",
   "ui/share.js",

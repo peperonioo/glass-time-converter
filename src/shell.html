@@ -420,9 +420,10 @@
       min-height: 74px;
       padding: 16px 18px;
       border-right: 1px solid var(--line);
+      /* Fully opaque: scrolled cells must never ghost through the sticky column. */
       background:
         linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)),
-        rgba(12, 16, 30, .94);
+        rgb(13, 17, 30);
     }
 
     .left-head strong {
@@ -571,9 +572,10 @@
       min-height: var(--row);
       padding: 10px 12px;
       border-right: 1px solid var(--line);
+      /* Fully opaque: scrolled cells must never ghost through the sticky column. */
       background:
         linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)),
-        rgba(14, 18, 32, .94);
+        rgb(15, 19, 33);
       display: flex;
       align-items: center;
       gap: 11px;
@@ -585,13 +587,13 @@
     .city-card:hover {
       background:
         linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04)),
-        rgba(14, 18, 32, .94);
+        rgb(15, 19, 33);
     }
 
     .city-card.anchor {
       background:
         linear-gradient(90deg, rgba(159,215,255,.16), rgba(217,184,255,.07)),
-        rgba(14, 18, 32, .94);
+        rgb(15, 19, 33);
     }
 
     .city-glow {
@@ -643,6 +645,46 @@
       font-size: 11px;
       flex: 0 0 auto;
       margin-left: auto;
+    }
+
+    /* Hours difference vs the base city, e.g. "+8h" — the number people
+       actually think in. Base row shows the Base tag instead. */
+    .rel-offset {
+      flex: 0 0 auto;
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 740;
+      letter-spacing: .01em;
+      color: rgba(159,215,255,.92);
+      background: rgba(159,215,255,.10);
+      border: 1px solid rgba(159,215,255,.20);
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
+    .rel-offset + .offset {
+      margin-left: 8px;
+    }
+
+    /* Row reordering: lifted row follows the pointer, the rest glide aside. */
+    body.reordering {
+      cursor: grabbing;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body.reordering #rows .row {
+      transition: transform .18s var(--ease);
+    }
+
+    #rows .row.lifting {
+      transition: none;
+      position: relative;
+      z-index: 30;
+      background: rgba(18, 24, 44, .92);
+      box-shadow: 0 16px 44px rgba(0,0,0,.45);
+      outline: 1px solid rgba(255,255,255,.16);
+      border-radius: 14px;
     }
 
     .current-time {
@@ -1214,17 +1256,31 @@
       /* The left panel already says "Base · …", so free the row for the name. */
       .base-tag { display: none; }
 
-      /* Offset to the top-right corner so the city name keeps the full line
-         (only the name line reserves space; time/zone lines use full width). */
-      .city-line { padding-right: 32px; }
-      .current-time, .zone-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .offset {
+      /* Corner badge keeps the city name on a full line: non-base rows show the
+         hours-vs-base chip (the number people think in); the base row keeps its
+         GMT. Full GMT for every zone stays visible in the picker. */
+      .city-line { padding-right: 40px; }
+
+      .offset { display: none; }
+
+      #rows .row:first-child .offset {
+        display: block;
         position: absolute;
-        top: 10px;
+        top: 9px;
         right: 9px;
         margin: 0;
         font-size: 9px;
       }
+
+      .rel-offset {
+        position: absolute;
+        top: 9px;
+        right: 9px;
+        margin: 0;
+        font-size: 9px;
+        padding: 1px 5px;
+      }
+      .current-time, .zone-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
       .zone-name {
         font-size: 10px;

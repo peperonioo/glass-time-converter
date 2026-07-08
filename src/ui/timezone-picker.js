@@ -28,13 +28,19 @@ function closePicker() {
 }
 
 function renderZoneOptions(query) {
-  const q = query.trim().toLowerCase();
+  const q = normSearch(query.trim());
   const now = new Date();
+  const hit = ([label, timeZone]) => !q || normSearch(`${label} ${timeZone}`).includes(q);
 
-  const matches = ZONE_LIBRARY.filter(([label, timeZone]) => {
-    const text = `${label} ${timeZone}`.toLowerCase();
-    return !q || text.includes(q);
-  });
+  // Curated cities first; with a query, extend into the full IANA list (~418
+  // zones from the runtime) skipping timezones the curated hits already cover.
+  const curated = ZONE_LIBRARY.filter(hit);
+  let matches = curated;
+  if (q) {
+    const seenTz = new Set(curated.map(z => z[1]));
+    const extra = fullZoneList().filter(z => !seenTz.has(z[1]) && hit(z));
+    matches = curated.concat(extra).slice(0, 60);
+  }
 
   if (!matches.length) {
     els.zoneList.innerHTML = `<div class="zone-empty">Sin resultados para “${escapeHTML(query)}”.</div>`;

@@ -110,7 +110,11 @@ function bindEvents() {
   }, { passive: false });
 
   // City card actions (click — not part of the drag system).
+  // Single tap (slightly delayed) opens the picker; a double-tap jumps to "now".
+  const cityTap = { id: null, t: 0, timer: null };
+
   els.rows.addEventListener("click", event => {
+    if (rowDrag.suppressClick) { rowDrag.suppressClick = false; return; } // ended a reorder drag
     const row = event.target.closest(".row");
     if (!row) return;
 
@@ -137,7 +141,30 @@ function bindEvents() {
     if (event.target.closest(".cell")) return;
 
     if (event.target.closest(".city-card")) {
-      openPicker("edit", row.dataset.zoneId);
+      const zoneId = row.dataset.zoneId;
+      const now = Date.now();
+
+      if (cityTap.id === zoneId && now - cityTap.t < 320) {
+        // Double-tap: jump the selection to the current instant.
+        clearTimeout(cityTap.timer);
+        cityTap.timer = null;
+        cityTap.id = null;
+        const zone = state.zones.find(z => z.id === zoneId);
+        jumpNow();
+        if (zone) {
+          const c = getParts(new Date(), zone.timeZone);
+          showToast(`Ahora en ${zone.label} · ${fmtDisplayTime(c.hour, c.minute)}`);
+        }
+        return;
+      }
+
+      cityTap.id = zoneId;
+      cityTap.t = now;
+      clearTimeout(cityTap.timer);
+      cityTap.timer = setTimeout(() => {
+        cityTap.id = null;
+        openPicker("edit", zoneId);
+      }, 300);
     }
   });
 
@@ -195,6 +222,7 @@ if (applyStateFromURL()) {
   history.replaceState(null, "", location.origin + location.pathname);
 }
 bindEvents();
+initRowReorder();
 render();
 setTimeout(focusHour, 160);
 
