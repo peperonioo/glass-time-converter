@@ -74,12 +74,6 @@ function bindEvents() {
   /* --- Timeline pointer interactions (no rerender on movement) --- */
 
   // Hover cursor band (mouse/pen only — touch must not steal scroll).
-  els.hourHeader.addEventListener("pointermove", event => {
-    if (drag.active || event.pointerType === "touch") return;
-    const head = event.target.closest(".hour-head");
-    if (head) updateCursorDOM(Number(head.dataset.hour) * 2);
-  });
-
   els.rows.addEventListener("pointermove", event => {
     if (drag.active || event.pointerType === "touch") return;
     const cell = event.target.closest(".cell");
@@ -87,11 +81,6 @@ function bindEvents() {
   });
 
   // Selection start.
-  els.hourHeader.addEventListener("pointerdown", event => {
-    if (!event.target.closest(".hour-head")) return;
-    beginPointer(event, els.hourHeader, true, els.hourHeader);
-  });
-
   els.rows.addEventListener("pointerdown", event => {
     if (event.target.closest(".city-card")) return;
     const cell = event.target.closest(".cell");

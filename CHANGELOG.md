@@ -2,6 +2,17 @@
 
 All notable changes to Glass Time.
 
+## [0.11.1] — 2026-07-12
+
+### Removed — redundant header row
+
+- The hour-strip header duplicated the base city's row exactly (same timezone,
+  same hours) — a leftover from the original per-row-scroller design. It's gone,
+  along with its side panel: the base city is the first row (with its "Base"
+  pill), the date lives in the toolbar input and the scroll-following day pins,
+  and the duration lives in the Dynamic Island. The timeline gains ~74px of
+  vertical space and loses a full strip of repeated numbers.
+
 ## [0.11.0] — 2026-07-12
 
 ### Added — multi-day timeline (infinite lateral scroll)

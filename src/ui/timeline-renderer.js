@@ -9,14 +9,6 @@
 function render() {
   const keepScroll = els.timeScroll ? els.timeScroll.scrollLeft : 0;
   els.dateInput.value = state.dateISO;
-  els.baseLabel.textContent = `Base · ${baseZone().label}`;
-  // Always-visible base date (the timeline header date can scroll out of view).
-  const baseInstant = zonedTimeToUtc(state.dateISO, 12, 0, baseZone().timeZone);
-  els.baseDate.textContent = new Intl.DateTimeFormat("es-ES", {
-    weekday: "short", day: "numeric", month: "short", year: "numeric",
-    timeZone: baseZone().timeZone
-  }).format(baseInstant);
-  renderHeader();
   renderRows();
   renderIsland();
   save();
@@ -80,31 +72,6 @@ function updateDayPins(left) {
 
 function restoreScroll(left) {
   els.timeScroll.scrollLeft = left;
-}
-
-function renderHeader() {
-  const base = baseZone();
-  let html = "";
-  let prevISO = null;
-
-  for (let h = VIEW_H0; h < VIEW_H1; h++) {
-    const instant = zonedTimeToUtc(state.dateISO, h, 0, base.timeZone);
-    const p = getParts(instant, base.timeZone);
-    const iso = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
-    const dayStart = h !== VIEW_H0 && iso !== prevISO; // midnight divider (not at the very edge)
-    prevISO = iso;
-
-    html += `
-      <div class="hour-head ${h === slotHour(state.cursorSlot) ? "cursor" : ""} ${dayStart ? "day-start" : ""}" data-hour="${h}" data-date="${escapeHTML(fmtDate(p))}">
-        <span class="cursor-band" aria-hidden="true"></span>
-        <div class="h">${compactHourHTML(p.hour)}</div>
-      </div>
-    `;
-  }
-
-  // Scroll-following day label (sticky to the left edge, updates at day changes).
-  html += `<div class="day-pin head-pin" aria-hidden="true"></div>`;
-  els.hourHeader.innerHTML = html;
 }
 
 /* A cell is part of the selection if the range overlaps its 2 half-hour slots.
@@ -195,7 +162,6 @@ function renderIsland() {
 
   els.selectedSummary.textContent = `${duration} seleccionadas`;
   els.selectedDateChip.textContent = `${base.label} · ${fmtDate(baseStart)} · ${baseRange}`;
-  els.durationLabel.textContent = `Seleccionado · ${duration}`;
   updateMood(startInstant);
 }
 

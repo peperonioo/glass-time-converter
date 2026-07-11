@@ -406,55 +406,13 @@
     .row:last-child { border-bottom: 0; }
 
     /* Sticky city column — pinned to the left while the hours scroll natively.
-       Needs an opaque-ish base so scrolled cells don't bleed through it. */
-    .left-head,
+       Needs an opaque base so scrolled cells don't bleed through it. */
     .city-card {
       position: sticky;
       left: 0;
       z-index: 5;
       flex: 0 0 var(--city);
       width: var(--city);
-    }
-
-    .left-head {
-      min-height: 74px;
-      padding: 16px 18px;
-      border-right: 1px solid var(--line);
-      /* Fully opaque: scrolled cells must never ghost through the sticky column. */
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)),
-        rgb(13, 17, 30);
-    }
-
-    .left-head strong {
-      display: block;
-      font-size: 15px;
-      letter-spacing: -.02em;
-    }
-
-    .base-date {
-      margin-top: 5px;
-      font-size: 13.5px;
-      font-weight: 640;
-      color: var(--text);
-      letter-spacing: -.015em;
-    }
-    .base-date::first-letter {
-      text-transform: uppercase;
-    }
-
-    .left-head span {
-      display: inline-flex;
-      align-items: center;
-      margin-top: 8px;
-      padding: 6px 9px;
-      border-radius: 999px;
-      font-size: 12px;
-      color: rgba(255,255,255,.82);
-      background:
-        linear-gradient(180deg, rgba(159,215,255,.18), rgba(217,184,255,.10)),
-        rgba(255,255,255,.07);
-      border: 1px solid rgba(255,255,255,.13);
     }
 
     .scroll {
@@ -474,24 +432,6 @@
       /* 3-day window: 72 hour columns (yesterday · base date · tomorrow). */
       grid-template-columns: repeat(72, var(--cell));
       width: calc(72 * var(--cell));
-    }
-
-    .hour-head {
-      position: relative;
-      min-height: 74px;
-      padding: 18px 5px 9px;
-      display: grid;
-      place-items: center;
-      border-right: 1px solid rgba(255,255,255,.09);
-      text-align: center;
-      background: rgba(255,255,255,.032);
-    }
-
-    .hour-head .h {
-      position: relative;
-      z-index: 1;
-      display: grid;
-      place-items: center;
     }
 
     .time-stack {
@@ -542,30 +482,17 @@
          and will-change would force ~144 GPU layers and wreck mobile scroll. */
     }
 
-    .hour-head.cursor .cursor-band,
     .cell.cursor .cursor-band {
       opacity: 1;
       transform: scaleX(1);
     }
 
-    .hour-head.cursor,
     .cell.cursor {
       background-image: linear-gradient(180deg, rgba(159,215,255,.045), rgba(217,184,255,.035));
     }
 
-    .cell.cursor .time-stack .ampm,
-    .hour-head.cursor .time-stack .ampm {
+    .cell.cursor .time-stack .ampm {
       color: rgba(255,255,255,.86);
-    }
-
-    .hour-head .d {
-      position: relative;
-      z-index: 1;
-      margin-top: 6px;
-      font-size: 10px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .08em;
     }
 
     .city-card {
@@ -878,8 +805,7 @@
     .cell.next-day .t { opacity: .72; }
 
     /* Day boundary: a clear, slightly accented midnight divider. */
-    .cell.day-start,
-    .hour-head.day-start:not(:first-child) {
+    .cell.day-start {
       border-left: 2px solid rgba(159,215,255,.42);
     }
 
@@ -902,14 +828,6 @@
       pointer-events: none;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-    }
-
-    .day-pin.head-pin {
-      top: 4px;
-      font-size: 8.5px;
-      color: rgba(255,255,255,.78);
-      background: rgba(6,9,18,.7);
-      border-color: rgba(255,255,255,.14);
     }
 
     .day-pin.flip {
@@ -1225,21 +1143,6 @@
 
       .right-tools .glass-btn { padding: 9px 12px; }
 
-      .left-head {
-        padding: 11px 10px;
-      }
-
-      .left-head strong { font-size: 14px; }
-
-      .base-date { font-size: 12px; }
-
-      .left-head span {
-        display: inline-flex;
-        font-size: 11px;
-        padding: 4px 7px;
-        margin-top: 6px;
-      }
-
       .city-card {
         padding: 9px 8px;
         gap: 8px;
@@ -1548,14 +1451,6 @@
            pinned while the hours scroll natively (no JS sync = smooth). -->
       <div class="scroll time-scroll" id="timeScroll">
         <div class="grid">
-          <div class="row head-row">
-            <div class="left-head">
-              <strong id="baseLabel">Base</strong>
-              <div id="baseDate" class="base-date">—</div>
-              <span id="durationLabel">Seleccionado · 1h</span>
-            </div>
-            <div class="hours" id="hourHeader"></div>
-          </div>
           <div id="rows"></div>
         </div>
       </div>
@@ -1973,11 +1868,7 @@
       icsBtn: document.getElementById("icsBtn"),
       resetBtn: document.getElementById("resetBtn"),
       addBtn: document.getElementById("addBtn"),
-      baseLabel: document.getElementById("baseLabel"),
-      baseDate: document.getElementById("baseDate"),
-      durationLabel: document.getElementById("durationLabel"),
       timeScroll: document.getElementById("timeScroll"),
-      hourHeader: document.getElementById("hourHeader"),
       rows: document.getElementById("rows"),
       backdrop: document.getElementById("backdrop"),
       sheet: document.getElementById("sheet"),
@@ -2221,8 +2112,8 @@
     function updateCursorDOM(slot) {
       state.cursorSlot = clampSlot(slot);
       const hour = slotHour(state.cursorSlot);
-      document.querySelectorAll(".hour-head.cursor, .cell.cursor").forEach(el => el.classList.remove("cursor"));
-      document.querySelectorAll(`.hour-head[data-hour="${hour}"], .cell[data-hour="${hour}"]`).forEach(el => el.classList.add("cursor"));
+      document.querySelectorAll(".cell.cursor").forEach(el => el.classList.remove("cursor"));
+      document.querySelectorAll(`.cell[data-hour="${hour}"]`).forEach(el => el.classList.add("cursor"));
     }
 
     /* ===== ui/timeline-renderer.js ===== */
@@ -2236,14 +2127,6 @@
     function render() {
       const keepScroll = els.timeScroll ? els.timeScroll.scrollLeft : 0;
       els.dateInput.value = state.dateISO;
-      els.baseLabel.textContent = `Base · ${baseZone().label}`;
-      // Always-visible base date (the timeline header date can scroll out of view).
-      const baseInstant = zonedTimeToUtc(state.dateISO, 12, 0, baseZone().timeZone);
-      els.baseDate.textContent = new Intl.DateTimeFormat("es-ES", {
-        weekday: "short", day: "numeric", month: "short", year: "numeric",
-        timeZone: baseZone().timeZone
-      }).format(baseInstant);
-      renderHeader();
       renderRows();
       renderIsland();
       save();
@@ -2307,31 +2190,6 @@
 
     function restoreScroll(left) {
       els.timeScroll.scrollLeft = left;
-    }
-
-    function renderHeader() {
-      const base = baseZone();
-      let html = "";
-      let prevISO = null;
-
-      for (let h = VIEW_H0; h < VIEW_H1; h++) {
-        const instant = zonedTimeToUtc(state.dateISO, h, 0, base.timeZone);
-        const p = getParts(instant, base.timeZone);
-        const iso = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
-        const dayStart = h !== VIEW_H0 && iso !== prevISO; // midnight divider (not at the very edge)
-        prevISO = iso;
-
-        html += `
-          <div class="hour-head ${h === slotHour(state.cursorSlot) ? "cursor" : ""} ${dayStart ? "day-start" : ""}" data-hour="${h}" data-date="${escapeHTML(fmtDate(p))}">
-            <span class="cursor-band" aria-hidden="true"></span>
-            <div class="h">${compactHourHTML(p.hour)}</div>
-          </div>
-        `;
-      }
-
-      // Scroll-following day label (sticky to the left edge, updates at day changes).
-      html += `<div class="day-pin head-pin" aria-hidden="true"></div>`;
-      els.hourHeader.innerHTML = html;
     }
 
     /* A cell is part of the selection if the range overlaps its 2 half-hour slots.
@@ -2422,7 +2280,6 @@
 
       els.selectedSummary.textContent = `${duration} seleccionadas`;
       els.selectedDateChip.textContent = `${base.label} · ${fmtDate(baseStart)} · ${baseRange}`;
-      els.durationLabel.textContent = `Seleccionado · ${duration}`;
       updateMood(startInstant);
     }
 
@@ -3181,12 +3038,6 @@
       /* --- Timeline pointer interactions (no rerender on movement) --- */
 
       // Hover cursor band (mouse/pen only — touch must not steal scroll).
-      els.hourHeader.addEventListener("pointermove", event => {
-        if (drag.active || event.pointerType === "touch") return;
-        const head = event.target.closest(".hour-head");
-        if (head) updateCursorDOM(Number(head.dataset.hour) * 2);
-      });
-
       els.rows.addEventListener("pointermove", event => {
         if (drag.active || event.pointerType === "touch") return;
         const cell = event.target.closest(".cell");
@@ -3194,11 +3045,6 @@
       });
 
       // Selection start.
-      els.hourHeader.addEventListener("pointerdown", event => {
-        if (!event.target.closest(".hour-head")) return;
-        beginPointer(event, els.hourHeader, true, els.hourHeader);
-      });
-
       els.rows.addEventListener("pointerdown", event => {
         if (event.target.closest(".city-card")) return;
         const cell = event.target.closest(".cell");
