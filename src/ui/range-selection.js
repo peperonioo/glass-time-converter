@@ -23,15 +23,16 @@ const drag = {
 };
 
 /* Map an absolute clientX to a half-hour slot using a row's .hours rect,
-   so it stays correct regardless of horizontal scroll position. */
+   so it stays correct regardless of horizontal scroll position. The rect spans
+   the whole 3-day window, so the result is a base-relative slot. */
 function slotFromClientX(clientX, hoursEl) {
   const rect = hoursEl.getBoundingClientRect();
-  const cw = rect.width / 24;
+  const cw = rect.width / VIEW_HOURS;
   const rel = clientX - rect.left;
-  let hour = Math.floor(rel / cw);
-  hour = Math.max(0, Math.min(23, hour));
-  const within = (rel - hour * cw) / cw;
-  return clampSlot(hour * 2 + (within >= 0.5 ? 1 : 0));
+  let idx = Math.floor(rel / cw);
+  idx = Math.max(0, Math.min(VIEW_HOURS - 1, idx));
+  const within = (rel - idx * cw) / cw;
+  return clampSlot((idx + VIEW_H0) * 2 + (within >= 0.5 ? 1 : 0));
 }
 
 /* Apply a range to state + DOM without a full render. */
@@ -39,7 +40,7 @@ function liveRange(anchorSlot, currentSlot) {
   const a = clampSlot(anchorSlot);
   const b = clampSlot(currentSlot);
   const start = Math.min(a, b);
-  const end = Math.min(48, Math.max(a, b) + 1);
+  const end = Math.min(VIEW_SLOT1, Math.max(a, b) + 1);
   state.selectedStartSlot = start;
   state.selectedEndSlot = end;
   applySelectionDOM();
@@ -132,5 +133,8 @@ function endPointer(event) {
     if (drag.isHeader) liveRange(drag.anchor, drag.anchor + 1);
     else liveRange(drag.anchor, drag.anchor);
   }
+  // Selected on the rendered yesterday/tomorrow? Make that day the base date
+  // (the absolute instant is untouched and the view doesn't move).
+  applyCanonical();
   save();
 }

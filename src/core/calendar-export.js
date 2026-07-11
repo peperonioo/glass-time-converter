@@ -4,13 +4,14 @@
    Auto-split from the tested bundle. Edit here; run `node src/build.js` to regenerate dist. */
 /* ---------- calendar export ---------- */
 
+/* Human lines only — no IANA ids, no GMT offsets, no technical clutter. */
 function selectionLines() {
   const startInstant = selectedInstant();
   const endInstant = selectedEndInstant();
   return state.zones.map(zone => {
     const start = getParts(startInstant, zone.timeZone);
     const end = getParts(endInstant, zone.timeZone);
-    return `${zone.label}: ${fmtDate(start)} ${fmtDisplayTime(start.hour, start.minute)}–${fmtDisplayTime(end.hour, end.minute)} (${zone.timeZone})`;
+    return `${zone.label} · ${fmtDate(start)} · ${fmtDisplayTime(start.hour, start.minute)}–${fmtDisplayTime(end.hour, end.minute)}`;
   });
 }
 
@@ -26,12 +27,7 @@ function calendarTitle() {
 }
 
 function calendarDetails() {
-  return [
-    "Creado desde Glass Time.",
-    "",
-    "Conversión:",
-    ...selectionLines()
-  ].join("\n");
+  return selectionLines().join("\n");
 }
 
 function openGoogleCalendar() {

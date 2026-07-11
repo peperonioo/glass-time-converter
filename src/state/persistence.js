@@ -6,11 +6,14 @@
 
 function save() {
   try {
+    // Persist the canonical form (selection start inside the base date) even if
+    // the live view is currently anchored on an adjacent day.
+    const shift = selectionDayShift();
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       zones: state.zones,
-      dateISO: state.dateISO,
-      selectedStartSlot: state.selectedStartSlot,
-      selectedEndSlot: state.selectedEndSlot
+      dateISO: shift ? addDays(state.dateISO, shift) : state.dateISO,
+      selectedStartSlot: state.selectedStartSlot - shift * 48,
+      selectedEndSlot: state.selectedEndSlot - shift * 48
     }));
   } catch { /* storage may be unavailable (private mode); ignore */ }
 }

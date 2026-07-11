@@ -471,8 +471,9 @@
       position: relative;
       flex: 0 0 auto;
       display: grid;
-      grid-template-columns: repeat(24, var(--cell));
-      width: calc(24 * var(--cell));
+      /* 3-day window: 72 hour columns (yesterday · base date · tomorrow). */
+      grid-template-columns: repeat(72, var(--cell));
+      width: calc(72 * var(--cell));
     }
 
     .hour-head {

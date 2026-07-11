@@ -2,6 +2,38 @@
 
 All notable changes to Glass Time.
 
+## [0.11.0] — 2026-07-12
+
+### Added — multi-day timeline (infinite lateral scroll)
+
+- The timeline now renders a **3-day window** (yesterday · base date · tomorrow,
+  72 hour columns) instead of a single day:
+  - **Scrolling sideways is effectively infinite**: shortly after the scroll
+    settles on an adjacent day, the window re-anchors around it (the base date
+    follows the day you're looking at; the view doesn't move; the selected
+    absolute instant never changes).
+  - **Selecting on the rendered yesterday/tomorrow re-anchors the base date to
+    that day.** This is the "session with my psychologist" flow: with Bali as
+    base, scroll/tap directly on Buenos Aires' *26th 8PM* — even when that lands
+    on Bali's 27th — and save it.
+  - **Ranges can cross midnight** (e.g. 11PM–2AM) and stay correct end-to-end
+    (island, calendar export, share).
+  - Keyboard arrows walk across midnight into the adjacent day.
+  - Persistence and share links always store the canonical form (selection
+    start inside the base date), so nothing changes for existing links.
+
+### Changed — clean calendar description
+
+- Google Calendar / .ics descriptions are now human lines only, e.g.
+  `Bali · Lun 27/07 · 7AM–8AM` per city — no IANA ids, no GMT offsets, no
+  "Creado desde…" boilerplate. ("Copiar" uses the same clean lines.)
+
+### Internal
+
+- Slot model generalized to base-relative half-hours across the rendered window
+  (`VIEW_H0=-24 … VIEW_H1=48`), with `canonicalizeSelection()` re-anchoring and
+  canonical-form persistence. Service-worker cache bumped to v0.11.0.
+
 ## [0.10.0] — 2026-07-08
 
 ### Added — "the app knows you" + city management

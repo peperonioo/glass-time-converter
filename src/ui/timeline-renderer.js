@@ -25,13 +25,20 @@ function render() {
   updateDayPins();
 }
 
+/* Base-relative hour of the current instant (may land on the rendered
+   yesterday/tomorrow), or null when outside the 3-day window. */
+function nowHourInView() {
+  const baseNow = getParts(new Date(), baseZone().timeZone);
+  const todayISO = `${baseNow.year}-${pad(baseNow.month)}-${pad(baseNow.day)}`;
+  const dayDiff = Math.round((dateFromISO(todayISO) - dateFromISO(state.dateISO)) / 86400000);
+  const h = dayDiff * 24 + baseNow.hour;
+  return h >= VIEW_H0 && h < VIEW_H1 ? h : null;
+}
+
 /* Keep the app feeling alive between full renders: tick each city's "Ahora"
    time and move the live "now" marker. Text/class only — no rebuild. */
 function updateLiveClock() {
   const now = new Date();
-  const base = baseZone();
-  const baseNow = getParts(now, base.timeZone);
-  const isToday = `${baseNow.year}-${pad(baseNow.month)}-${pad(baseNow.day)}` === state.dateISO;
 
   state.zones.forEach(zone => {
     const row = els.rows.querySelector(`.row[data-zone-id="${zone.id}"]`);
@@ -42,8 +49,9 @@ function updateLiveClock() {
   });
 
   els.rows.querySelectorAll(".cell.now").forEach(c => c.classList.remove("now"));
-  if (isToday) {
-    els.rows.querySelectorAll(`.cell[data-hour="${baseNow.hour}"]`).forEach(c => c.classList.add("now"));
+  const nh = nowHourInView();
+  if (nh !== null) {
+    els.rows.querySelectorAll(`.cell[data-hour="${nh}"]`).forEach(c => c.classList.add("now"));
   }
 }
 
@@ -53,7 +61,8 @@ function updateLiveClock() {
 function updateDayPins(left) {
   const cw = cellWidthPx();
   const L = typeof left === "number" ? left : (els.timeScroll ? els.timeScroll.scrollLeft : 0);
-  const h = Math.max(0, Math.min(23, Math.floor(L / cw + 0.001)));
+  const idx = Math.max(0, Math.min(VIEW_HOURS - 1, Math.floor(L / cw + 0.001)));
+  const h = idx + VIEW_H0; // rendered index -> base-relative hour
   const xform = `translateX(${L}px)`;
   document.querySelectorAll(".hours > .day-pin").forEach(pin => {
     const hoursEl = pin.parentElement;
@@ -78,11 +87,11 @@ function renderHeader() {
   let html = "";
   let prevISO = null;
 
-  for (let h = 0; h < 24; h++) {
+  for (let h = VIEW_H0; h < VIEW_H1; h++) {
     const instant = zonedTimeToUtc(state.dateISO, h, 0, base.timeZone);
     const p = getParts(instant, base.timeZone);
     const iso = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
-    const dayStart = h !== 0 && iso !== prevISO; // midnight divider (not at the very edge)
+    const dayStart = h !== VIEW_H0 && iso !== prevISO; // midnight divider (not at the very edge)
     prevISO = iso;
 
     html += `
@@ -108,9 +117,8 @@ function cellSelected(h, range) {
 function renderRows() {
   const base = baseZone();
   const now = new Date();
-  const baseNow = getParts(now, base.timeZone);
-  const isToday = `${baseNow.year}-${pad(baseNow.month)}-${pad(baseNow.day)}` === state.dateISO;
   const range = normalizedRange();
+  const nowHour = nowHourInView();
 
   els.rows.innerHTML = state.zones.map((zone, index) => {
     const current = getParts(now, zone.timeZone);
@@ -118,20 +126,21 @@ function renderRows() {
     const color = COLORS[index % COLORS.length];
 
     let prevISO = null;
-    const cells = Array.from({ length: 24 }, (_, h) => {
+    const cells = Array.from({ length: VIEW_HOURS }, (_, i) => {
+      const h = i + VIEW_H0; // base-relative hour across the 3-day window
       const instant = zonedTimeToUtc(state.dateISO, h, 0, base.timeZone);
       const p = getParts(instant, zone.timeZone);
       const localISO = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
       const dayShift = localISO < state.dateISO ? "-1" : localISO > state.dateISO ? "+1" : "";
       // Midnight divider where the local day changes; the scroll-following pin
       // shows the date persistently and updates at this boundary.
-      const dayStart = h !== 0 && localISO !== prevISO;
+      const dayStart = h !== VIEW_H0 && localISO !== prevISO;
       prevISO = localISO;
       const dateLabel = `${fmtDate(p)}${dayShift ? ` · ${dayShift}` : ""}`;
       const selected = cellSelected(h, range);
       const phase = zonePhaseAt(zone, instant); // real sun: day / golden / twilight / night
       const otherDay = dayShift === "-1" ? "prev-day" : dayShift === "+1" ? "next-day" : "";
-      const nowClass = isToday && h === baseNow.hour ? "now" : "";
+      const nowClass = h === nowHour ? "now" : "";
       const cursor = h === slotHour(state.cursorSlot);
 
       return `
@@ -164,7 +173,7 @@ function renderRows() {
             ${state.zones.length > 1 ? `<button class="mini-btn remove-zone" title="Eliminar">×</button>` : ""}
           </div>
         </div>
-        <div class="hours" style="--sel-start:${range.start}; --sel-len:${range.durationSlots};">
+        <div class="hours" style="--sel-start:${range.start - VIEW_SLOT0}; --sel-len:${range.durationSlots};">
           ${cells}
           <div class="sel-band" aria-hidden="true"></div>
           <div class="day-pin" aria-hidden="true"></div>
@@ -201,10 +210,10 @@ function updateMood(instant) {
 function applySelectionDOM() {
   const range = normalizedRange();
   els.rows.querySelectorAll(".hours").forEach(hours => {
-    hours.style.setProperty("--sel-start", range.start);
+    hours.style.setProperty("--sel-start", range.start - VIEW_SLOT0);
     hours.style.setProperty("--sel-len", range.durationSlots);
   });
-  for (let h = 0; h < 24; h++) {
+  for (let h = VIEW_H0; h < VIEW_H1; h++) {
     const selected = cellSelected(h, range);
     els.rows.querySelectorAll(`.cell[data-hour="${h}"]`).forEach(cell => {
       cell.classList.toggle("selected", selected);
@@ -212,18 +221,62 @@ function applySelectionDOM() {
   }
 }
 
-/* Single native scroller — no JS row-syncing at all. Just keep the day pins in
-   step, throttled to one update per frame. */
+/* Shift the 3-day window by N days keeping the on-screen content (and the
+   absolute selection) exactly where it is. This is what makes lateral scroll
+   effectively infinite: when you settle on yesterday/tomorrow, that day
+   becomes the new base date and a fresh day appears beyond it. */
+function shiftWindow(shiftDays) {
+  if (!shiftDays) return;
+  state.dateISO = addDays(state.dateISO, shiftDays);
+  state.selectedStartSlot -= shiftDays * 48;
+  state.selectedEndSlot -= shiftDays * 48;
+  state.cursorSlot -= shiftDays * 48;
+  const keep = els.timeScroll.scrollLeft - shiftDays * 24 * cellWidthPx();
+  render();
+  els.timeScroll.scrollLeft = Math.max(0, keep);
+  updateDayPins();
+}
+
+/* After the scroll settles, if the view center has left the middle day,
+   re-anchor the window around the day being looked at. */
+function maybeShiftWindow() {
+  if (drag.active || rowDrag.active) return;
+  const cw = cellWidthPx();
+  const sc = els.timeScroll;
+  const visibleHours = (sc.clientWidth - parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--city"))) / cw;
+  const center = sc.scrollLeft / cw + Math.max(1, visibleHours) / 2; // rendered-hour units
+  if (center < 24) shiftWindow(-1);
+  else if (center >= 48) shiftWindow(1);
+}
+
+/* Single native scroller — no JS row-syncing at all. Day pins update once per
+   frame; the window re-anchors shortly after the scroll goes idle. */
 function bindScrollSync() {
   let pinRAF = 0;
+  let idleTimer = 0;
   els.timeScroll.onscroll = () => {
     if (!pinRAF) {
       pinRAF = requestAnimationFrame(() => { pinRAF = 0; updateDayPins(); });
     }
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(maybeShiftWindow, 220);
   };
 }
 
+/* Re-anchor the base date to the selection (canonical form) after the user
+   commits a selection outside the middle day. Keeps the view visually still. */
+function applyCanonical() {
+  const shift = canonicalizeSelection();
+  if (shift) {
+    const keep = els.timeScroll.scrollLeft - shift * 24 * cellWidthPx();
+    render();
+    els.timeScroll.scrollLeft = Math.max(0, keep);
+    updateDayPins();
+  }
+  return shift;
+}
+
 function focusHour() {
-  const target = Math.max(0, slotHour(normalizedRange().start) * cellWidthPx() - 180);
+  const target = Math.max(0, (slotHour(normalizedRange().start) - VIEW_H0) * cellWidthPx() - 180);
   els.timeScroll.scrollTo({ left: target, behavior: "smooth" });
 }

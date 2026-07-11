@@ -190,22 +190,16 @@ function bindEvents() {
     }
     if (event.target.matches("input")) return;
 
-    if (event.key === "ArrowLeft") {
+    // Arrows can walk across midnight: the window re-anchors (canonicalize)
+    // so stepping past 24:00 simply moves into the next day.
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      const dir = event.key === "ArrowLeft" ? -1 : 1;
       const duration = normalizedRange().durationSlots;
-      const nextStart = Math.max(0, normalizedRange().start - 1);
+      const nextStart = clampSlot(normalizedRange().start + dir);
       state.selectedStartSlot = nextStart;
-      state.selectedEndSlot = Math.min(48, nextStart + duration);
+      state.selectedEndSlot = Math.min(VIEW_SLOT1, nextStart + duration);
       state.cursorSlot = nextStart;
-      render();
-      focusHour();
-    }
-
-    if (event.key === "ArrowRight") {
-      const duration = normalizedRange().durationSlots;
-      const nextStart = Math.min(47, normalizedRange().start + 1);
-      state.selectedStartSlot = nextStart;
-      state.selectedEndSlot = Math.min(48, nextStart + duration);
-      state.cursorSlot = nextStart;
+      canonicalizeSelection();
       render();
       focusHour();
     }

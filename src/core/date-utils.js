@@ -56,13 +56,22 @@ function fmtDisplayTime(hour, minute = 0) {
   return `${hour12(hour)}:${pad(minute)}${suffix}`;
 }
 
-/* Slots are half-hours: 0..48 (48 = end-of-day 24:00). */
+/* Slots are half-hours relative to the base date: slot 0 = 00:00 of dateISO.
+   The rendered window spans 3 days — [yesterday, base date, tomorrow] — so
+   valid on-screen slots run VIEW_SLOT0..VIEW_SLOT1 and hours VIEW_H0..VIEW_H1.
+   Canonical (persisted/shared) form keeps the selection start inside 0..47. */
+const VIEW_H0 = -24;      // first rendered hour (base-relative)
+const VIEW_H1 = 48;       // one past the last rendered hour
+const VIEW_HOURS = VIEW_H1 - VIEW_H0; // 72
+const VIEW_SLOT0 = VIEW_H0 * 2;       // -48
+const VIEW_SLOT1 = VIEW_H1 * 2;       // 96
+
 function slotHour(slot) {
   return Math.floor(slot / 2);
 }
 
 function slotMinute(slot) {
-  return slot % 2 ? 30 : 0;
+  return ((slot % 2) + 2) % 2 ? 30 : 0; // negative-safe
 }
 
 function fmtSlot(slot) {
@@ -70,7 +79,7 @@ function fmtSlot(slot) {
 }
 
 function clampSlot(slot) {
-  return Math.max(0, Math.min(48, Number(slot)));
+  return Math.max(VIEW_SLOT0, Math.min(VIEW_SLOT1, Number(slot)));
 }
 
 function durationText(slots) {

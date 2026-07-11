@@ -60,6 +60,23 @@ function normalizedRange() {
   };
 }
 
+/* Whole days the selection start sits away from the base date (0 = canonical). */
+function selectionDayShift() {
+  return Math.floor(normalizedRange().start / 48);
+}
+
+/* Re-anchor dateISO so the selection start falls inside it (slots 0..47).
+   The absolute instant never changes. Returns the day shift applied. */
+function canonicalizeSelection() {
+  const shift = selectionDayShift();
+  if (!shift) return 0;
+  state.dateISO = addDays(state.dateISO, shift);
+  state.selectedStartSlot -= shift * 48;
+  state.selectedEndSlot -= shift * 48;
+  state.cursorSlot -= shift * 48;
+  return shift;
+}
+
 function baseZone() {
   return state.zones[0];
 }
