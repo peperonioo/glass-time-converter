@@ -2,6 +2,41 @@
 
 All notable changes to Glass Time.
 
+## [0.12.0] — 2026-07-14
+
+Audit follow-up: every technical-debt item + the full design P1–P5 list.
+
+### Fixed — technical debt (from the V0.11 audit)
+
+- **Test suite (was: 0 tests).** `test/run-tests.js` — 39 assertions over the
+  core: slot math (negative-safe), DST-safe conversion (incl. the historical
+  v0.6 divergence bug, spring-forward/fall-back), offset seconds-rounding
+  regression, relative offsets, real sunrise validation, canonical window
+  re-anchoring, and the zone library. **`build.js` runs the suite first — a red
+  suite cannot ship.**
+- **Exact sun for all zones (was: 39 cities).** `scripts/gen-coords.js` generates
+  `src/data/zone-coords.js` from the system tzdata `zone.tab` — official IANA
+  coordinates for all 418 zones (+6 KB gzip). The offset-longitude approximation
+  is now only a last-resort fallback.
+- **shell.html split (was: 1 483-line monolith).** Styles extracted to
+  `src/styles.css` (inlined at build); shell.html is now 114 lines of markup.
+  Removed the one orphan rule (`gt-pop` keyframes).
+- **PWA icons optimized:** 260 KB → 37 KB (palette PNG, no visible loss).
+- **Dead code removed** (`isHeader` branch in range-selection).
+
+### Added — design P1–P5
+
+- **P1 · First-run coach marks:** two glass tooltips (touch-aware copy) teach
+  the invisible gestures — hold-to-select, tap city / double-tap = now / drag to
+  reorder. Shown once, dismiss on tap, auto-advance.
+- **P2 · iOS install hint:** one-time pill ("Compartir → Añadir a pantalla de
+  inicio") on the second visit in iOS Safari when not installed.
+- **P3 · Social preview:** designed 1200×630 `og-image.png` + full OG/Twitter
+  meta tags on the Pages build — shared links now unfurl with a real card.
+- **P4 · Contrast:** `--muted` .42 → .50, brighter IANA line and day pins.
+- **P5 · Picker "Recientes":** the last 3 chosen zones appear on top, with a
+  "Todas las ciudades" separator.
+
 ## [0.11.1] — 2026-07-12
 
 ### Removed — redundant header row

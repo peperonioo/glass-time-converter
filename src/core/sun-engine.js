@@ -45,12 +45,16 @@ function sunPhase(altitudeDeg) {
   return "night";
 }
 
-/* Resolve coordinates for a zone: prefer its city, then its timezone, then a
-   rough longitude from the current UTC offset (lat 0). Never throws. */
+/* Resolve coordinates for a zone: the curated city first (e.g. Barcelona vs
+   Madrid share a tz but not coords), then the official tzdata coordinates for
+   the zone (all ~418), then a rough longitude from the UTC offset. */
 function coordsFor(zone, atDate) {
   if (typeof zone.lat === "number" && typeof zone.lon === "number") return [zone.lat, zone.lon];
   if (zone.label && COORDS_BY_LABEL[zone.label]) return COORDS_BY_LABEL[zone.label];
   if (zone.timeZone && COORDS_BY_TZ[zone.timeZone]) return COORDS_BY_TZ[zone.timeZone];
+  if (zone.timeZone && typeof ZONE_COORDS !== "undefined" && ZONE_COORDS[zone.timeZone]) {
+    return ZONE_COORDS[zone.timeZone];
+  }
   const mins = offsetMinutes(atDate || new Date(), zone.timeZone);
   return [0, Math.max(-180, Math.min(180, mins / 4))];
 }

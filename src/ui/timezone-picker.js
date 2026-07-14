@@ -27,27 +27,21 @@ function closePicker() {
   state.editingZoneId = null;
 }
 
-function renderZoneOptions(query) {
-  const q = normSearch(query.trim());
-  const now = new Date();
-  const hit = ([label, timeZone]) => !q || normSearch(`${label} ${timeZone}`).includes(q);
+const RECENT_KEY = "glass-time-recent-zones";
 
-  // Curated cities first; with a query, extend into the full IANA list (~418
-  // zones from the runtime) skipping timezones the curated hits already cover.
-  const curated = ZONE_LIBRARY.filter(hit);
-  let matches = curated;
-  if (q) {
-    const seenTz = new Set(curated.map(z => z[1]));
-    const extra = fullZoneList().filter(z => !seenTz.has(z[1]) && hit(z));
-    matches = curated.concat(extra).slice(0, 60);
-  }
+function recentZones() {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch { return []; }
+}
 
-  if (!matches.length) {
-    els.zoneList.innerHTML = `<div class="zone-empty">Sin resultados para “${escapeHTML(query)}”.</div>`;
-    return;
-  }
+function rememberZone(label, timeZone) {
+  try {
+    const list = [[label, timeZone], ...recentZones().filter(z => z[1] !== timeZone || z[0] !== label)].slice(0, 3);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+  } catch { /* ignore */ }
+}
 
-  els.zoneList.innerHTML = matches.map(([label, timeZone]) => {
+function zoneOptionHTML(now) {
+  return ([label, timeZone]) => {
     const p = getParts(now, timeZone);
     return `
       <button class="zone-option" data-label="${escapeHTML(label)}" data-timezone="${escapeHTML(timeZone)}">
@@ -58,10 +52,44 @@ function renderZoneOptions(query) {
         <em>${offsetText(now, timeZone)}</em>
       </button>
     `;
-  }).join("");
+  };
+}
+
+function renderZoneOptions(query) {
+  const q = normSearch(query.trim());
+  const now = new Date();
+  const hit = ([label, timeZone]) => !q || normSearch(`${label} ${timeZone}`).includes(q);
+  const option = zoneOptionHTML(now);
+
+  // Curated cities first; with a query, extend into the full IANA list (~418
+  // zones from the runtime) skipping timezones the curated hits already cover.
+  const curated = ZONE_LIBRARY.filter(hit);
+
+  if (!q) {
+    // Browsing: last-used zones on top, then the curated library.
+    const recent = recentZones();
+    const recentHTML = recent.length
+      ? `<div class="zone-group-label">Recientes</div>` + recent.map(option).join("") +
+        `<div class="zone-group-label">Todas las ciudades</div>`
+      : "";
+    els.zoneList.innerHTML = recentHTML + curated.map(option).join("");
+    return;
+  }
+
+  const seenTz = new Set(curated.map(z => z[1]));
+  const extra = fullZoneList().filter(z => !seenTz.has(z[1]) && hit(z));
+  const matches = curated.concat(extra).slice(0, 60);
+
+  if (!matches.length) {
+    els.zoneList.innerHTML = `<div class="zone-empty">Sin resultados para “${escapeHTML(query)}”.</div>`;
+    return;
+  }
+
+  els.zoneList.innerHTML = matches.map(option).join("");
 }
 
 function chooseZone(label, timeZone) {
+  rememberZone(label, timeZone);
   if (state.pickerMode === "add") {
     const instant = selectedInstant();
     const duration = normalizedRange().durationSlots;

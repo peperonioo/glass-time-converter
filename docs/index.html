@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Glass Time — Visual Timezone Converter</title>
   <style>
+    /* Glass Time — styles (inlined into the bundle by src/build.js) */
+
     :root {
       --bg: #070812;
       --bg2: #10152a;
       --text: rgba(255,255,255,.94);
       --soft: rgba(255,255,255,.66);
-      --muted: rgba(255,255,255,.42);
+      --muted: rgba(255,255,255,.50);
       --line: rgba(255,255,255,.12);
       --glass: rgba(255,255,255,.09);
       --glass2: rgba(255,255,255,.14);
@@ -631,7 +633,6 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      opacity: .85;
     }
 
     /* Actions overlay on the right and reveal on hover, so the city name keeps
@@ -820,7 +821,7 @@
       border-radius: 999px;
       background: rgba(6,9,18,.62);
       border: 1px solid rgba(255,255,255,.1);
-      color: rgba(255,255,255,.55);
+      color: rgba(255,255,255,.62);
       font-size: 8px;
       font-weight: 760;
       letter-spacing: .02em;
@@ -1233,12 +1234,6 @@
       50%      { opacity: 1; }
     }
 
-    @keyframes gt-pop {
-      0%   { transform: scale(.6); opacity: 0; }
-      60%  { transform: scale(1.06); opacity: 1; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
     .nav     { animation: gt-rise .5s var(--ease) both; }
     .toolbar { animation: gt-rise .55s .06s var(--ease) both; }
     .board   { animation: gt-rise .6s .12s var(--ease) both; }
@@ -1375,6 +1370,112 @@
         scroll-behavior: auto !important;
       }
     }
+
+    /* ---------- onboarding: coach marks + iOS install hint ---------- */
+
+    .coach {
+      position: fixed;
+      z-index: 140;
+      max-width: min(320px, calc(100vw - 24px));
+      padding: 11px 14px;
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.07)),
+        rgba(6, 9, 18, .88);
+      border: 1px solid rgba(159,215,255,.35);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.24),
+        0 18px 60px rgba(0,0,0,.5),
+        0 0 30px rgba(159,215,255,.18);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      font-size: 13px;
+      line-height: 1.45;
+      color: rgba(255,255,255,.9);
+      opacity: 0;
+      transform: translateY(6px) scale(.97);
+      transition: opacity .24s var(--ease), transform .24s var(--ease);
+      cursor: pointer;
+    }
+
+    .coach.show {
+      opacity: 1;
+      transform: none;
+    }
+
+    .coach b { color: var(--blue, #9fd7ff); color: #9fd7ff; }
+
+    .coach em {
+      display: block;
+      margin-top: 5px;
+      font-style: normal;
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.4);
+    }
+
+    .install-hint {
+      position: fixed;
+      z-index: 130;
+      left: 50%;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      transform: translateX(-50%) translateY(12px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: calc(100vw - 24px);
+      padding: 11px 12px 11px 15px;
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.06)),
+        rgba(6, 9, 18, .9);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 18px 60px rgba(0,0,0,.5);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      font-size: 12.5px;
+      color: rgba(255,255,255,.88);
+      opacity: 0;
+      transition: opacity .28s var(--ease), transform .28s var(--ease);
+    }
+
+    .install-hint.show {
+      opacity: 1;
+      transform: translateX(-50%);
+    }
+
+    .install-hint svg {
+      width: 12px;
+      height: 15px;
+      vertical-align: -2px;
+      color: #9fd7ff;
+    }
+
+    .install-hint b { color: #9fd7ff; font-weight: 700; }
+
+    .install-hint button {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.1);
+      color: rgba(255,255,255,.7);
+      font-size: 15px;
+      line-height: 1;
+      flex: 0 0 auto;
+    }
+
+    /* ---------- picker: recientes ---------- */
+
+    .zone-group-label {
+      padding: 10px 14px 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.42);
+    }
+
   </style>
   <link rel="manifest" href="./manifest.webmanifest" />
   <meta name="theme-color" content="#070812" />
@@ -1383,6 +1484,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Glass Time" />
+  <meta name="description" content="Convierte horas entre ciudades, con luz solar real. Elige un rango y guárdalo en tu calendario." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Glass Time — conversor visual de zonas horarias" />
+  <meta property="og:description" content="Convierte horas entre ciudades, con luz solar real. Elige un rango y guárdalo en tu calendario." />
+  <meta property="og:url" content="https://peperonioo.github.io/glass-time-converter/" />
+  <meta property="og:image" content="https://peperonioo.github.io/glass-time-converter/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
 </head>
 <body>
   <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -1485,6 +1595,433 @@
 
   <script>
     "use strict";
+
+    /* ===== data/zone-coords.js ===== */
+
+    /* Glass Time — data/zone-coords
+       GENERATED by scripts/gen-coords.js from tzdata zone.tab — do not edit by hand.
+       Official IANA coordinates for every timezone, so the sun engine is exact for
+       all ~418 zones (not just the curated cities). */
+    const ZONE_COORDS = {
+      "Africa/Abidjan": [5.32, -4.03],
+      "Africa/Accra": [5.55, -0.22],
+      "Africa/Addis_Ababa": [9.03, 38.7],
+      "Africa/Algiers": [36.78, 3.05],
+      "Africa/Asmara": [15.33, 38.88],
+      "Africa/Bamako": [12.65, -8],
+      "Africa/Bangui": [4.37, 18.58],
+      "Africa/Banjul": [13.47, -16.65],
+      "Africa/Bissau": [11.85, -15.58],
+      "Africa/Blantyre": [-15.78, 35],
+      "Africa/Brazzaville": [-4.27, 15.28],
+      "Africa/Bujumbura": [-3.38, 29.37],
+      "Africa/Cairo": [30.05, 31.25],
+      "Africa/Casablanca": [33.65, -7.58],
+      "Africa/Ceuta": [35.88, -5.32],
+      "Africa/Conakry": [9.52, -13.72],
+      "Africa/Dakar": [14.67, -17.43],
+      "Africa/Dar_es_Salaam": [-6.8, 39.28],
+      "Africa/Djibouti": [11.6, 43.15],
+      "Africa/Douala": [4.05, 9.7],
+      "Africa/El_Aaiun": [27.15, -13.2],
+      "Africa/Freetown": [8.5, -13.25],
+      "Africa/Gaborone": [-24.65, 25.92],
+      "Africa/Harare": [-17.83, 31.05],
+      "Africa/Johannesburg": [-26.25, 28],
+      "Africa/Juba": [4.85, 31.62],
+      "Africa/Kampala": [0.32, 32.42],
+      "Africa/Khartoum": [15.6, 32.53],
+      "Africa/Kigali": [-1.95, 30.07],
+      "Africa/Kinshasa": [-4.3, 15.3],
+      "Africa/Lagos": [6.45, 3.4],
+      "Africa/Libreville": [0.38, 9.45],
+      "Africa/Lome": [6.13, 1.22],
+      "Africa/Luanda": [-8.8, 13.23],
+      "Africa/Lubumbashi": [-11.67, 27.47],
+      "Africa/Lusaka": [-15.42, 28.28],
+      "Africa/Malabo": [3.75, 8.78],
+      "Africa/Maputo": [-25.97, 32.58],
+      "Africa/Maseru": [-29.47, 27.5],
+      "Africa/Mbabane": [-26.3, 31.1],
+      "Africa/Mogadishu": [2.07, 45.37],
+      "Africa/Monrovia": [6.3, -10.78],
+      "Africa/Nairobi": [-1.28, 36.82],
+      "Africa/Ndjamena": [12.12, 15.05],
+      "Africa/Niamey": [13.52, 2.12],
+      "Africa/Nouakchott": [18.1, -15.95],
+      "Africa/Ouagadougou": [12.37, -1.52],
+      "Africa/Porto-Novo": [6.48, 2.62],
+      "Africa/Sao_Tome": [0.33, 6.73],
+      "Africa/Tripoli": [32.9, 13.18],
+      "Africa/Tunis": [36.8, 10.18],
+      "Africa/Windhoek": [-22.57, 17.1],
+      "America/Adak": [51.88, -176.66],
+      "America/Anchorage": [61.22, -149.9],
+      "America/Anguilla": [18.2, -63.07],
+      "America/Antigua": [17.05, -61.8],
+      "America/Araguaina": [-7.2, -48.2],
+      "America/Argentina/Buenos_Aires": [-34.6, -58.45],
+      "America/Argentina/Catamarca": [-28.47, -65.78],
+      "America/Argentina/Cordoba": [-31.4, -64.18],
+      "America/Argentina/Jujuy": [-24.18, -65.3],
+      "America/Argentina/La_Rioja": [-29.43, -66.85],
+      "America/Argentina/Mendoza": [-32.88, -68.82],
+      "America/Argentina/Rio_Gallegos": [-51.63, -69.22],
+      "America/Argentina/Salta": [-24.78, -65.42],
+      "America/Argentina/San_Juan": [-31.53, -68.52],
+      "America/Argentina/San_Luis": [-33.32, -66.35],
+      "America/Argentina/Tucuman": [-26.82, -65.22],
+      "America/Argentina/Ushuaia": [-54.8, -68.3],
+      "America/Aruba": [12.5, -69.97],
+      "America/Asuncion": [-25.27, -57.67],
+      "America/Atikokan": [48.76, -91.62],
+      "America/Bahia": [-12.98, -38.52],
+      "America/Bahia_Banderas": [20.8, -105.25],
+      "America/Barbados": [13.1, -59.62],
+      "America/Belem": [-1.45, -48.48],
+      "America/Belize": [17.5, -88.2],
+      "America/Blanc-Sablon": [51.42, -57.12],
+      "America/Boa_Vista": [2.82, -60.67],
+      "America/Bogota": [4.6, -74.08],
+      "America/Boise": [43.61, -116.2],
+      "America/Cambridge_Bay": [69.11, -105.05],
+      "America/Campo_Grande": [-20.45, -54.62],
+      "America/Cancun": [21.08, -86.77],
+      "America/Caracas": [10.5, -66.93],
+      "America/Cayenne": [4.93, -52.33],
+      "America/Cayman": [19.3, -81.38],
+      "America/Chicago": [41.85, -87.65],
+      "America/Chihuahua": [28.63, -106.08],
+      "America/Ciudad_Juarez": [31.73, -106.48],
+      "America/Costa_Rica": [9.93, -84.08],
+      "America/Coyhaique": [-45.57, -72.07],
+      "America/Creston": [49.1, -116.52],
+      "America/Cuiaba": [-15.58, -56.08],
+      "America/Curacao": [12.18, -69],
+      "America/Danmarkshavn": [76.77, -18.67],
+      "America/Dawson": [64.07, -139.42],
+      "America/Dawson_Creek": [55.77, -120.23],
+      "America/Denver": [39.74, -104.98],
+      "America/Detroit": [42.33, -83.05],
+      "America/Dominica": [15.3, -61.4],
+      "America/Edmonton": [53.55, -113.47],
+      "America/Eirunepe": [-6.67, -69.87],
+      "America/El_Salvador": [13.7, -89.2],
+      "America/Fort_Nelson": [58.8, -122.7],
+      "America/Fortaleza": [-3.72, -38.5],
+      "America/Glace_Bay": [46.2, -59.95],
+      "America/Goose_Bay": [53.33, -60.42],
+      "America/Grand_Turk": [21.47, -71.13],
+      "America/Grenada": [12.05, -61.75],
+      "America/Guadeloupe": [16.23, -61.53],
+      "America/Guatemala": [14.63, -90.52],
+      "America/Guayaquil": [-2.17, -79.83],
+      "America/Guyana": [6.8, -58.17],
+      "America/Halifax": [44.65, -63.6],
+      "America/Havana": [23.13, -82.37],
+      "America/Hermosillo": [29.07, -110.97],
+      "America/Indiana/Indianapolis": [39.77, -86.16],
+      "America/Indiana/Knox": [41.3, -86.62],
+      "America/Indiana/Marengo": [38.38, -86.34],
+      "America/Indiana/Petersburg": [38.49, -87.28],
+      "America/Indiana/Tell_City": [37.95, -86.76],
+      "America/Indiana/Vevay": [38.75, -85.07],
+      "America/Indiana/Vincennes": [38.68, -87.53],
+      "America/Indiana/Winamac": [41.05, -86.6],
+      "America/Inuvik": [68.35, -133.72],
+      "America/Iqaluit": [63.73, -68.47],
+      "America/Jamaica": [17.97, -76.79],
+      "America/Juneau": [58.3, -134.42],
+      "America/Kentucky/Louisville": [38.25, -85.76],
+      "America/Kentucky/Monticello": [36.83, -84.85],
+      "America/Kralendijk": [12.15, -68.28],
+      "America/La_Paz": [-16.5, -68.15],
+      "America/Lima": [-12.05, -77.05],
+      "America/Los_Angeles": [34.05, -118.24],
+      "America/Lower_Princes": [18.05, -63.05],
+      "America/Maceio": [-9.67, -35.72],
+      "America/Managua": [12.15, -86.28],
+      "America/Manaus": [-3.13, -60.02],
+      "America/Marigot": [18.07, -63.08],
+      "America/Martinique": [14.6, -61.08],
+      "America/Matamoros": [25.83, -97.5],
+      "America/Mazatlan": [23.22, -106.42],
+      "America/Menominee": [45.11, -87.61],
+      "America/Merida": [20.97, -89.62],
+      "America/Metlakatla": [55.13, -131.58],
+      "America/Mexico_City": [19.4, -99.15],
+      "America/Miquelon": [47.05, -56.33],
+      "America/Moncton": [46.1, -64.78],
+      "America/Monterrey": [25.67, -100.32],
+      "America/Montevideo": [-34.91, -56.21],
+      "America/Montserrat": [16.72, -62.22],
+      "America/Nassau": [25.08, -77.35],
+      "America/New_York": [40.71, -74.01],
+      "America/Nome": [64.5, -165.41],
+      "America/Noronha": [-3.85, -32.42],
+      "America/North_Dakota/Beulah": [47.26, -101.78],
+      "America/North_Dakota/Center": [47.12, -101.3],
+      "America/North_Dakota/New_Salem": [46.85, -101.41],
+      "America/Nuuk": [64.18, -51.73],
+      "America/Ojinaga": [29.57, -104.42],
+      "America/Panama": [8.97, -79.53],
+      "America/Paramaribo": [5.83, -55.17],
+      "America/Phoenix": [33.45, -112.07],
+      "America/Port-au-Prince": [18.53, -72.33],
+      "America/Port_of_Spain": [10.65, -61.52],
+      "America/Porto_Velho": [-8.77, -63.9],
+      "America/Puerto_Rico": [18.47, -66.11],
+      "America/Punta_Arenas": [-53.15, -70.92],
+      "America/Rankin_Inlet": [62.82, -92.08],
+      "America/Recife": [-8.05, -34.9],
+      "America/Regina": [50.4, -104.65],
+      "America/Resolute": [74.7, -94.83],
+      "America/Rio_Branco": [-9.97, -67.8],
+      "America/Santarem": [-2.43, -54.87],
+      "America/Santiago": [-33.45, -70.67],
+      "America/Santo_Domingo": [18.47, -69.9],
+      "America/Sao_Paulo": [-23.53, -46.62],
+      "America/Scoresbysund": [70.48, -21.97],
+      "America/Sitka": [57.18, -135.3],
+      "America/St_Barthelemy": [17.88, -62.85],
+      "America/St_Johns": [47.57, -52.72],
+      "America/St_Kitts": [17.3, -62.72],
+      "America/St_Lucia": [14.02, -61],
+      "America/St_Thomas": [18.35, -64.93],
+      "America/St_Vincent": [13.15, -61.23],
+      "America/Swift_Current": [50.28, -107.83],
+      "America/Tegucigalpa": [14.1, -87.22],
+      "America/Thule": [76.57, -68.78],
+      "America/Tijuana": [32.53, -117.02],
+      "America/Toronto": [43.65, -79.38],
+      "America/Tortola": [18.45, -64.62],
+      "America/Vancouver": [49.27, -123.12],
+      "America/Whitehorse": [60.72, -135.05],
+      "America/Winnipeg": [49.88, -97.15],
+      "America/Yakutat": [59.55, -139.73],
+      "Antarctica/Casey": [-66.28, 110.52],
+      "Antarctica/Davis": [-68.58, 77.97],
+      "Antarctica/DumontDUrville": [-66.67, 140.02],
+      "Antarctica/Macquarie": [-54.5, 158.95],
+      "Antarctica/Mawson": [-67.6, 62.88],
+      "Antarctica/McMurdo": [-77.83, 166.6],
+      "Antarctica/Palmer": [-64.8, -64.1],
+      "Antarctica/Rothera": [-67.57, -68.13],
+      "Antarctica/Syowa": [-69.01, 39.59],
+      "Antarctica/Troll": [-72.01, 2.53],
+      "Antarctica/Vostok": [-78.4, 106.9],
+      "Arctic/Longyearbyen": [78, 16],
+      "Asia/Aden": [12.75, 45.2],
+      "Asia/Almaty": [43.25, 76.95],
+      "Asia/Amman": [31.95, 35.93],
+      "Asia/Anadyr": [64.75, 177.48],
+      "Asia/Aqtau": [44.52, 50.27],
+      "Asia/Aqtobe": [50.28, 57.17],
+      "Asia/Ashgabat": [37.95, 58.38],
+      "Asia/Atyrau": [47.12, 51.93],
+      "Asia/Baghdad": [33.35, 44.42],
+      "Asia/Bahrain": [26.38, 50.58],
+      "Asia/Baku": [40.38, 49.85],
+      "Asia/Bangkok": [13.75, 100.52],
+      "Asia/Barnaul": [53.37, 83.75],
+      "Asia/Beirut": [33.88, 35.5],
+      "Asia/Bishkek": [42.9, 74.6],
+      "Asia/Brunei": [4.93, 114.92],
+      "Asia/Chita": [52.05, 113.47],
+      "Asia/Colombo": [6.93, 79.85],
+      "Asia/Damascus": [33.5, 36.3],
+      "Asia/Dhaka": [23.72, 90.42],
+      "Asia/Dili": [-8.55, 125.58],
+      "Asia/Dubai": [25.3, 55.3],
+      "Asia/Dushanbe": [38.58, 68.8],
+      "Asia/Famagusta": [35.12, 33.95],
+      "Asia/Gaza": [31.5, 34.47],
+      "Asia/Hebron": [31.53, 35.1],
+      "Asia/Ho_Chi_Minh": [10.75, 106.67],
+      "Asia/Hong_Kong": [22.28, 114.15],
+      "Asia/Hovd": [48.02, 91.65],
+      "Asia/Irkutsk": [52.27, 104.33],
+      "Asia/Jakarta": [-6.17, 106.8],
+      "Asia/Jayapura": [-2.53, 140.7],
+      "Asia/Jerusalem": [31.78, 35.22],
+      "Asia/Kabul": [34.52, 69.2],
+      "Asia/Kamchatka": [53.02, 158.65],
+      "Asia/Karachi": [24.87, 67.05],
+      "Asia/Kathmandu": [27.72, 85.32],
+      "Asia/Khandyga": [62.66, 135.55],
+      "Asia/Kolkata": [22.53, 88.37],
+      "Asia/Krasnoyarsk": [56.02, 92.83],
+      "Asia/Kuala_Lumpur": [3.17, 101.7],
+      "Asia/Kuching": [1.55, 110.33],
+      "Asia/Kuwait": [29.33, 47.98],
+      "Asia/Macau": [22.2, 113.54],
+      "Asia/Magadan": [59.57, 150.8],
+      "Asia/Makassar": [-5.12, 119.4],
+      "Asia/Manila": [14.59, 120.97],
+      "Asia/Muscat": [23.6, 58.58],
+      "Asia/Nicosia": [35.17, 33.37],
+      "Asia/Novokuznetsk": [53.75, 87.12],
+      "Asia/Novosibirsk": [55.03, 82.92],
+      "Asia/Omsk": [55, 73.4],
+      "Asia/Oral": [51.22, 51.35],
+      "Asia/Phnom_Penh": [11.55, 104.92],
+      "Asia/Pontianak": [-0.03, 109.33],
+      "Asia/Pyongyang": [39.02, 125.75],
+      "Asia/Qatar": [25.28, 51.53],
+      "Asia/Qostanay": [53.2, 63.62],
+      "Asia/Qyzylorda": [44.8, 65.47],
+      "Asia/Riyadh": [24.63, 46.72],
+      "Asia/Sakhalin": [46.97, 142.7],
+      "Asia/Samarkand": [39.67, 66.8],
+      "Asia/Seoul": [37.55, 126.97],
+      "Asia/Shanghai": [31.23, 121.47],
+      "Asia/Singapore": [1.28, 103.85],
+      "Asia/Srednekolymsk": [67.47, 153.72],
+      "Asia/Taipei": [25.05, 121.5],
+      "Asia/Tashkent": [41.33, 69.3],
+      "Asia/Tbilisi": [41.72, 44.82],
+      "Asia/Tehran": [35.67, 51.43],
+      "Asia/Thimphu": [27.47, 89.65],
+      "Asia/Tokyo": [35.65, 139.74],
+      "Asia/Tomsk": [56.5, 84.97],
+      "Asia/Ulaanbaatar": [47.92, 106.88],
+      "Asia/Urumqi": [43.8, 87.58],
+      "Asia/Ust-Nera": [64.56, 143.23],
+      "Asia/Vientiane": [17.97, 102.6],
+      "Asia/Vladivostok": [43.17, 131.93],
+      "Asia/Yakutsk": [62, 129.67],
+      "Asia/Yangon": [16.78, 96.17],
+      "Asia/Yekaterinburg": [56.85, 60.6],
+      "Asia/Yerevan": [40.18, 44.5],
+      "Atlantic/Azores": [37.73, -25.67],
+      "Atlantic/Bermuda": [32.28, -64.77],
+      "Atlantic/Canary": [28.1, -15.4],
+      "Atlantic/Cape_Verde": [14.92, -23.52],
+      "Atlantic/Faroe": [62.02, -6.77],
+      "Atlantic/Madeira": [32.63, -16.9],
+      "Atlantic/Reykjavik": [64.15, -21.85],
+      "Atlantic/South_Georgia": [-54.27, -36.53],
+      "Atlantic/St_Helena": [-15.92, -5.7],
+      "Atlantic/Stanley": [-51.7, -57.85],
+      "Australia/Adelaide": [-34.92, 138.58],
+      "Australia/Brisbane": [-27.47, 153.03],
+      "Australia/Broken_Hill": [-31.95, 141.45],
+      "Australia/Darwin": [-12.47, 130.83],
+      "Australia/Eucla": [-31.72, 128.87],
+      "Australia/Hobart": [-42.88, 147.32],
+      "Australia/Lindeman": [-20.27, 149],
+      "Australia/Lord_Howe": [-31.55, 159.08],
+      "Australia/Melbourne": [-37.82, 144.97],
+      "Australia/Perth": [-31.95, 115.85],
+      "Australia/Sydney": [-33.87, 151.22],
+      "Europe/Amsterdam": [52.37, 4.9],
+      "Europe/Andorra": [42.5, 1.52],
+      "Europe/Astrakhan": [46.35, 48.05],
+      "Europe/Athens": [37.97, 23.72],
+      "Europe/Belgrade": [44.83, 20.5],
+      "Europe/Berlin": [52.5, 13.37],
+      "Europe/Bratislava": [48.15, 17.12],
+      "Europe/Brussels": [50.83, 4.33],
+      "Europe/Bucharest": [44.43, 26.1],
+      "Europe/Budapest": [47.5, 19.08],
+      "Europe/Busingen": [47.7, 8.68],
+      "Europe/Chisinau": [47, 28.83],
+      "Europe/Copenhagen": [55.67, 12.58],
+      "Europe/Dublin": [53.33, -6.25],
+      "Europe/Gibraltar": [36.13, -5.35],
+      "Europe/Guernsey": [49.45, -2.54],
+      "Europe/Helsinki": [60.17, 24.97],
+      "Europe/Isle_of_Man": [54.15, -4.47],
+      "Europe/Istanbul": [41.02, 28.97],
+      "Europe/Jersey": [49.18, -2.11],
+      "Europe/Kaliningrad": [54.72, 20.5],
+      "Europe/Kirov": [58.6, 49.65],
+      "Europe/Kyiv": [50.43, 30.52],
+      "Europe/Lisbon": [38.72, -9.13],
+      "Europe/Ljubljana": [46.05, 14.52],
+      "Europe/London": [51.51, -0.13],
+      "Europe/Luxembourg": [49.6, 6.15],
+      "Europe/Madrid": [40.4, -3.68],
+      "Europe/Malta": [35.9, 14.52],
+      "Europe/Mariehamn": [60.1, 19.95],
+      "Europe/Minsk": [53.9, 27.57],
+      "Europe/Monaco": [43.7, 7.38],
+      "Europe/Moscow": [55.76, 37.62],
+      "Europe/Oslo": [59.92, 10.75],
+      "Europe/Paris": [48.87, 2.33],
+      "Europe/Podgorica": [42.43, 19.27],
+      "Europe/Prague": [50.08, 14.43],
+      "Europe/Riga": [56.95, 24.1],
+      "Europe/Rome": [41.9, 12.48],
+      "Europe/Samara": [53.2, 50.15],
+      "Europe/San_Marino": [43.92, 12.47],
+      "Europe/Sarajevo": [43.87, 18.42],
+      "Europe/Saratov": [51.57, 46.03],
+      "Europe/Simferopol": [44.95, 34.1],
+      "Europe/Skopje": [41.98, 21.43],
+      "Europe/Sofia": [42.68, 23.32],
+      "Europe/Stockholm": [59.33, 18.05],
+      "Europe/Tallinn": [59.42, 24.75],
+      "Europe/Tirane": [41.33, 19.83],
+      "Europe/Ulyanovsk": [54.33, 48.4],
+      "Europe/Vaduz": [47.15, 9.52],
+      "Europe/Vatican": [41.9, 12.45],
+      "Europe/Vienna": [48.22, 16.33],
+      "Europe/Vilnius": [54.68, 25.32],
+      "Europe/Volgograd": [48.73, 44.42],
+      "Europe/Warsaw": [52.25, 21],
+      "Europe/Zagreb": [45.8, 15.97],
+      "Europe/Zurich": [47.38, 8.53],
+      "Indian/Antananarivo": [-18.92, 47.52],
+      "Indian/Chagos": [-7.33, 72.42],
+      "Indian/Christmas": [-10.42, 105.72],
+      "Indian/Cocos": [-12.17, 96.92],
+      "Indian/Comoro": [-11.68, 43.27],
+      "Indian/Kerguelen": [-49.35, 70.22],
+      "Indian/Mahe": [-4.67, 55.47],
+      "Indian/Maldives": [4.17, 73.5],
+      "Indian/Mauritius": [-20.17, 57.5],
+      "Indian/Mayotte": [-12.78, 45.23],
+      "Indian/Reunion": [-20.87, 55.47],
+      "Pacific/Apia": [-13.83, -171.73],
+      "Pacific/Auckland": [-36.87, 174.77],
+      "Pacific/Bougainville": [-6.22, 155.57],
+      "Pacific/Chatham": [-43.95, -176.55],
+      "Pacific/Chuuk": [7.42, 151.78],
+      "Pacific/Easter": [-27.15, -109.43],
+      "Pacific/Efate": [-17.67, 168.42],
+      "Pacific/Fakaofo": [-9.37, -171.23],
+      "Pacific/Fiji": [-18.13, 178.42],
+      "Pacific/Funafuti": [-8.52, 179.22],
+      "Pacific/Galapagos": [-0.9, -89.6],
+      "Pacific/Gambier": [-23.13, -134.95],
+      "Pacific/Guadalcanal": [-9.53, 160.2],
+      "Pacific/Guam": [13.47, 144.75],
+      "Pacific/Honolulu": [21.31, -157.86],
+      "Pacific/Kanton": [-2.78, -171.72],
+      "Pacific/Kiritimati": [1.87, -157.33],
+      "Pacific/Kosrae": [5.32, 162.98],
+      "Pacific/Kwajalein": [9.08, 167.33],
+      "Pacific/Majuro": [7.15, 171.2],
+      "Pacific/Marquesas": [-9, -139.5],
+      "Pacific/Midway": [28.22, -177.37],
+      "Pacific/Nauru": [-0.52, 166.92],
+      "Pacific/Niue": [-19.02, -169.92],
+      "Pacific/Norfolk": [-29.05, 167.97],
+      "Pacific/Noumea": [-22.27, 166.45],
+      "Pacific/Pago_Pago": [-14.27, -170.7],
+      "Pacific/Palau": [7.33, 134.48],
+      "Pacific/Pitcairn": [-25.07, -130.08],
+      "Pacific/Pohnpei": [6.97, 158.22],
+      "Pacific/Port_Moresby": [-9.5, 147.17],
+      "Pacific/Rarotonga": [-21.23, -159.77],
+      "Pacific/Saipan": [15.2, 145.75],
+      "Pacific/Tahiti": [-17.53, -149.57],
+      "Pacific/Tarawa": [1.42, 173],
+      "Pacific/Tongatapu": [-21.13, -175.2],
+      "Pacific/Wake": [19.28, 166.62],
+      "Pacific/Wallis": [-13.3, -176.17]
+    };
 
     /* ===== data/timezone-library.js ===== */
 
@@ -1817,12 +2354,16 @@
       return "night";
     }
 
-    /* Resolve coordinates for a zone: prefer its city, then its timezone, then a
-       rough longitude from the current UTC offset (lat 0). Never throws. */
+    /* Resolve coordinates for a zone: the curated city first (e.g. Barcelona vs
+       Madrid share a tz but not coords), then the official tzdata coordinates for
+       the zone (all ~418), then a rough longitude from the UTC offset. */
     function coordsFor(zone, atDate) {
       if (typeof zone.lat === "number" && typeof zone.lon === "number") return [zone.lat, zone.lon];
       if (zone.label && COORDS_BY_LABEL[zone.label]) return COORDS_BY_LABEL[zone.label];
       if (zone.timeZone && COORDS_BY_TZ[zone.timeZone]) return COORDS_BY_TZ[zone.timeZone];
+      if (zone.timeZone && typeof ZONE_COORDS !== "undefined" && ZONE_COORDS[zone.timeZone]) {
+        return ZONE_COORDS[zone.timeZone];
+      }
       const mins = offsetMinutes(atDate || new Date(), zone.timeZone);
       return [0, Math.max(-180, Math.min(180, mins / 4))];
     }
@@ -2391,7 +2932,6 @@
       pointerType: "",
       pointerId: null,
       hoursEl: null,
-      isHeader: false,
       captureTarget: null,
       holdTimer: null
     };
@@ -2435,16 +2975,9 @@
       try { drag.captureTarget?.setPointerCapture?.(drag.pointerId); } catch { /* ignore */ }
     }
 
-    function beginPointer(event, hoursEl, isHeader, captureTarget) {
+    function beginPointer(event, hoursEl, captureTarget) {
       if (event.pointerType === "mouse" && event.button !== 0) return;
-      let slot;
-      if (isHeader) {
-        const head = event.target.closest(".hour-head");
-        if (!head) return;
-        slot = Number(head.dataset.hour) * 2;
-      } else {
-        slot = slotFromClientX(event.clientX, hoursEl);
-      }
+      const slot = slotFromClientX(event.clientX, hoursEl);
       drag.active = true;
       drag.selecting = false;
       drag.anchor = slot;
@@ -2453,7 +2986,6 @@
       drag.pointerType = event.pointerType;
       drag.pointerId = event.pointerId;
       drag.hoursEl = hoursEl;
-      drag.isHeader = isHeader;
       drag.captureTarget = captureTarget;
       clearHold();
 
@@ -2503,9 +3035,7 @@
       document.body.classList.remove("selecting"); // re-enable the eased settle glide
 
       if (!wasSelecting) {
-        // Tap: header => 1h, cell => 30m minimum.
-        if (drag.isHeader) liveRange(drag.anchor, drag.anchor + 1);
-        else liveRange(drag.anchor, drag.anchor);
+        liveRange(drag.anchor, drag.anchor); // tap = 30m minimum
       }
       // Selected on the rendered yesterday/tomorrow? Make that day the base date
       // (the absolute instant is untouched and the view doesn't move).
@@ -2701,27 +3231,21 @@
       state.editingZoneId = null;
     }
 
-    function renderZoneOptions(query) {
-      const q = normSearch(query.trim());
-      const now = new Date();
-      const hit = ([label, timeZone]) => !q || normSearch(`${label} ${timeZone}`).includes(q);
+    const RECENT_KEY = "glass-time-recent-zones";
 
-      // Curated cities first; with a query, extend into the full IANA list (~418
-      // zones from the runtime) skipping timezones the curated hits already cover.
-      const curated = ZONE_LIBRARY.filter(hit);
-      let matches = curated;
-      if (q) {
-        const seenTz = new Set(curated.map(z => z[1]));
-        const extra = fullZoneList().filter(z => !seenTz.has(z[1]) && hit(z));
-        matches = curated.concat(extra).slice(0, 60);
-      }
+    function recentZones() {
+      try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch { return []; }
+    }
 
-      if (!matches.length) {
-        els.zoneList.innerHTML = `<div class="zone-empty">Sin resultados para “${escapeHTML(query)}”.</div>`;
-        return;
-      }
+    function rememberZone(label, timeZone) {
+      try {
+        const list = [[label, timeZone], ...recentZones().filter(z => z[1] !== timeZone || z[0] !== label)].slice(0, 3);
+        localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+      } catch { /* ignore */ }
+    }
 
-      els.zoneList.innerHTML = matches.map(([label, timeZone]) => {
+    function zoneOptionHTML(now) {
+      return ([label, timeZone]) => {
         const p = getParts(now, timeZone);
         return `
           <button class="zone-option" data-label="${escapeHTML(label)}" data-timezone="${escapeHTML(timeZone)}">
@@ -2732,10 +3256,44 @@
             <em>${offsetText(now, timeZone)}</em>
           </button>
         `;
-      }).join("");
+      };
+    }
+
+    function renderZoneOptions(query) {
+      const q = normSearch(query.trim());
+      const now = new Date();
+      const hit = ([label, timeZone]) => !q || normSearch(`${label} ${timeZone}`).includes(q);
+      const option = zoneOptionHTML(now);
+
+      // Curated cities first; with a query, extend into the full IANA list (~418
+      // zones from the runtime) skipping timezones the curated hits already cover.
+      const curated = ZONE_LIBRARY.filter(hit);
+
+      if (!q) {
+        // Browsing: last-used zones on top, then the curated library.
+        const recent = recentZones();
+        const recentHTML = recent.length
+          ? `<div class="zone-group-label">Recientes</div>` + recent.map(option).join("") +
+            `<div class="zone-group-label">Todas las ciudades</div>`
+          : "";
+        els.zoneList.innerHTML = recentHTML + curated.map(option).join("");
+        return;
+      }
+
+      const seenTz = new Set(curated.map(z => z[1]));
+      const extra = fullZoneList().filter(z => !seenTz.has(z[1]) && hit(z));
+      const matches = curated.concat(extra).slice(0, 60);
+
+      if (!matches.length) {
+        els.zoneList.innerHTML = `<div class="zone-empty">Sin resultados para “${escapeHTML(query)}”.</div>`;
+        return;
+      }
+
+      els.zoneList.innerHTML = matches.map(option).join("");
     }
 
     function chooseZone(label, timeZone) {
+      rememberZone(label, timeZone);
       if (state.pickerMode === "add") {
         const instant = selectedInstant();
         const duration = normalizedRange().durationSlots;
@@ -2969,6 +3527,105 @@
       }, "image/png");
     }
 
+    /* ===== ui/onboarding.js ===== */
+
+    /* Glass Time — ui/onboarding
+       First-run coach marks (the gestures are invisible otherwise) and a one-time
+       iOS "add to home screen" hint. Everything dismisses on tap, persists in
+       localStorage, and never shows twice. */
+
+    const ONBOARD_KEY = "glass-time-onboard-v1";
+    const INSTALL_KEY = "glass-time-install-hint";
+    const VISITS_KEY = "glass-time-visits";
+
+    function showCoach(step) {
+      const isTouch = window.matchMedia("(pointer: coarse)").matches;
+      const tips = [
+        {
+          anchor: () => els.rows.querySelector(".row:first-child .cell[data-hour='9']") || els.rows.querySelector(".cell"),
+          text: isTouch
+            ? "<b>Mantén pulsado</b> y arrastra para elegir un rango de horas"
+            : "<b>Haz clic y arrastra</b> para elegir un rango de horas"
+        },
+        {
+          anchor: () => els.rows.querySelector(".city-card"),
+          text: isTouch
+            ? "Toca una ciudad para cambiarla · <b>doble toque</b> = ahora · <b>mantén y arrastra ↑↓</b> para reordenar"
+            : "Haz clic en una ciudad para cambiarla · <b>doble clic</b> = ahora · <b>arrastra ↑↓</b> para reordenar"
+        }
+      ];
+
+      if (step >= tips.length) {
+        try { localStorage.setItem(ONBOARD_KEY, "1"); } catch { /* ignore */ }
+        return;
+      }
+
+      const target = tips[step].anchor();
+      if (!target) { showCoach(step + 1); return; }
+
+      const rect = target.getBoundingClientRect();
+      const tip = document.createElement("div");
+      tip.className = "coach";
+      tip.innerHTML = `<span>${tips[step].text}</span><em>toca para seguir</em>`;
+      document.body.appendChild(tip);
+
+      // Place under the anchor, clamped to the viewport.
+      const place = () => {
+        const w = tip.offsetWidth;
+        const left = Math.max(10, Math.min(window.innerWidth - w - 10, rect.left + rect.width / 2 - w / 2));
+        tip.style.left = `${left}px`;
+        tip.style.top = `${Math.min(window.innerHeight - tip.offsetHeight - 12, rect.bottom + 10)}px`;
+      };
+      place();
+      requestAnimationFrame(() => tip.classList.add("show"));
+
+      let done = false;
+      const next = () => {
+        if (done) return;
+        done = true;
+        tip.classList.remove("show");
+        setTimeout(() => tip.remove(), 250);
+        setTimeout(() => showCoach(step + 1), 320);
+      };
+      tip.addEventListener("pointerdown", next);
+      document.addEventListener("pointerdown", next, { once: true, capture: true });
+      setTimeout(next, 8000); // auto-advance
+    }
+
+    function maybeShowInstallHint() {
+      const ua = navigator.userAgent || "";
+      const isIOS = /iphone|ipad|ipod/i.test(ua);
+      const standalone = navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+      if (!isIOS || standalone) return;
+      let visits = 0;
+      try {
+        if (localStorage.getItem(INSTALL_KEY)) return;
+        visits = (parseInt(localStorage.getItem(VISITS_KEY), 10) || 0) + 1;
+        localStorage.setItem(VISITS_KEY, String(visits));
+      } catch { return; }
+      if (visits < 2) return; // don't nag on the very first visit
+
+      const hint = document.createElement("div");
+      hint.className = "install-hint";
+      hint.innerHTML = `<span>Instálala: <b>Compartir <svg viewBox="0 0 16 20" aria-hidden="true"><path d="M8 1l3.5 3.5-.9.9L8.6 3.4V13H7.4V3.4L5.4 5.4l-.9-.9L8 1zM3 8h2v1.2H4.2v8.6h7.6V9.2H10V8h2a1 1 0 0 1 1 1v9.8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" fill="currentColor"/></svg></b> → “Añadir a pantalla de inicio”</span><button aria-label="Cerrar">×</button>`;
+      document.body.appendChild(hint);
+      requestAnimationFrame(() => hint.classList.add("show"));
+      const dismiss = () => {
+        try { localStorage.setItem(INSTALL_KEY, "1"); } catch { /* ignore */ }
+        hint.classList.remove("show");
+        setTimeout(() => hint.remove(), 300);
+      };
+      hint.querySelector("button").addEventListener("click", dismiss);
+      setTimeout(dismiss, 12000);
+    }
+
+    function initOnboarding() {
+      let seen = null;
+      try { seen = localStorage.getItem(ONBOARD_KEY); } catch { seen = "1"; }
+      if (!seen) setTimeout(() => showCoach(0), 1400);
+      setTimeout(maybeShowInstallHint, 2600);
+    }
+
     /* ===== main.js ===== */
 
     /* Glass Time — main (misc actions + wiring + bootstrap)
@@ -3056,7 +3713,7 @@
         if (event.target.closest(".city-card")) return;
         const cell = event.target.closest(".cell");
         if (!cell) return;
-        beginPointer(event, cell.closest(".hours"), false, els.rows);
+        beginPointer(event, cell.closest(".hours"), els.rows);
       });
 
       document.addEventListener("pointermove", movePointer, { passive: false });
@@ -3179,6 +3836,7 @@
     initRowReorder();
     render();
     setTimeout(focusHour, 160);
+    initOnboarding();
 
     // Staggered entrance for the rows on first mount only.
     const board = document.querySelector(".board");

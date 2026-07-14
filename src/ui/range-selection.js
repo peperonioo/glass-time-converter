@@ -17,7 +17,6 @@ const drag = {
   pointerType: "",
   pointerId: null,
   hoursEl: null,
-  isHeader: false,
   captureTarget: null,
   holdTimer: null
 };
@@ -61,16 +60,9 @@ function startSelecting() {
   try { drag.captureTarget?.setPointerCapture?.(drag.pointerId); } catch { /* ignore */ }
 }
 
-function beginPointer(event, hoursEl, isHeader, captureTarget) {
+function beginPointer(event, hoursEl, captureTarget) {
   if (event.pointerType === "mouse" && event.button !== 0) return;
-  let slot;
-  if (isHeader) {
-    const head = event.target.closest(".hour-head");
-    if (!head) return;
-    slot = Number(head.dataset.hour) * 2;
-  } else {
-    slot = slotFromClientX(event.clientX, hoursEl);
-  }
+  const slot = slotFromClientX(event.clientX, hoursEl);
   drag.active = true;
   drag.selecting = false;
   drag.anchor = slot;
@@ -79,7 +71,6 @@ function beginPointer(event, hoursEl, isHeader, captureTarget) {
   drag.pointerType = event.pointerType;
   drag.pointerId = event.pointerId;
   drag.hoursEl = hoursEl;
-  drag.isHeader = isHeader;
   drag.captureTarget = captureTarget;
   clearHold();
 
@@ -129,9 +120,7 @@ function endPointer(event) {
   document.body.classList.remove("selecting"); // re-enable the eased settle glide
 
   if (!wasSelecting) {
-    // Tap: header => 1h, cell => 30m minimum.
-    if (drag.isHeader) liveRange(drag.anchor, drag.anchor + 1);
-    else liveRange(drag.anchor, drag.anchor);
+    liveRange(drag.anchor, drag.anchor); // tap = 30m minimum
   }
   // Selected on the rendered yesterday/tomorrow? Make that day the base date
   // (the absolute instant is untouched and the view doesn't move).

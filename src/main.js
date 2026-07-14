@@ -85,7 +85,7 @@ function bindEvents() {
     if (event.target.closest(".city-card")) return;
     const cell = event.target.closest(".cell");
     if (!cell) return;
-    beginPointer(event, cell.closest(".hours"), false, els.rows);
+    beginPointer(event, cell.closest(".hours"), els.rows);
   });
 
   document.addEventListener("pointermove", movePointer, { passive: false });
@@ -208,6 +208,7 @@ bindEvents();
 initRowReorder();
 render();
 setTimeout(focusHour, 160);
+initOnboarding();
 
 // Staggered entrance for the rows on first mount only.
 const board = document.querySelector(".board");
