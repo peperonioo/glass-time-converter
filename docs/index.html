@@ -3318,29 +3318,39 @@
       els.zoneList.innerHTML = matches.map(option).join("");
     }
 
+    /* The base only changes when the user says so (⌖ button, dragging a row to the
+       top, or editing the base row itself). Adding or editing other cities never
+       steals the base. */
     function chooseZone(label, timeZone) {
       rememberZone(label, timeZone);
+
       if (state.pickerMode === "add") {
-        const instant = selectedInstant();
-        const duration = normalizedRange().durationSlots;
-        const newZone = { id: id(), label, timeZone };
-        state.zones.unshift(newZone);
-        // New city becomes base — preserve the real-world instant + duration.
-        const p = getParts(instant, timeZone);
-        const startSlot = p.hour * 2 + (p.minute >= 30 ? 1 : 0);
-        state.dateISO = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
-        state.selectedStartSlot = startSlot;
-        state.selectedEndSlot = clampSlot(startSlot + duration);
-        state.cursorSlot = startSlot;
-        showToast(`${label} añadido como base.`);
+        state.zones.push({ id: id(), label, timeZone });
+        showToast(`${label} añadida.`);
       } else {
         const zone = state.zones.find(z => z.id === state.editingZoneId);
         if (zone) {
-          const editedId = zone.id;
-          zone.label = label;
-          zone.timeZone = timeZone;
-          moveZoneToBase(editedId, true);
-          showToast(`${label} seleccionado como base.`);
+          const isBase = state.zones[0] && state.zones[0].id === zone.id;
+          if (isBase) {
+            // Editing the base row: it stays base with the new timezone, and the
+            // selected absolute instant is re-expressed in its wall time.
+            const instant = selectedInstant();
+            const duration = normalizedRange().durationSlots;
+            zone.label = label;
+            zone.timeZone = timeZone;
+            const p = getParts(instant, timeZone);
+            const startSlot = p.hour * 2 + (p.minute >= 30 ? 1 : 0);
+            state.dateISO = `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+            state.selectedStartSlot = startSlot;
+            state.selectedEndSlot = clampSlot(startSlot + duration);
+            state.cursorSlot = startSlot;
+            showToast(`Base cambiada a ${label}.`);
+          } else {
+            // Non-base city: replace in place — order and base untouched.
+            zone.label = label;
+            zone.timeZone = timeZone;
+            showToast(`${label} actualizada.`);
+          }
         }
       }
 

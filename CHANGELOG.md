@@ -2,6 +2,17 @@
 
 All notable changes to Glass Time.
 
+## [0.12.2] — 2026-07-14
+
+### Changed — the base is yours to change
+
+- Adding or editing a city **no longer steals the base**:
+  - "+ Ciudad" appends the new city at the end of the list.
+  - Changing a non-base city replaces it in place (order untouched).
+  - Changing the **base row itself** keeps it as base with the new timezone,
+    re-expressing the selected absolute instant in its wall time.
+  - The base only changes explicitly: the ⌖ button or dragging a row to the top.
+
 ## [0.12.1] — 2026-07-14
 
 ### Changed — human zone names
