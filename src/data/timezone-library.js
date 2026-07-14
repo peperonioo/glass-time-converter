@@ -85,3 +85,29 @@ function fullZoneList() {
 function normSearch(s) {
   return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
+
+/* IANA region prefixes, humanized in Spanish. */
+const ZONE_REGION_ES = {
+  Europe: "Europa",
+  America: "América",
+  Asia: "Asia",
+  Africa: "África",
+  Pacific: "Pacífico",
+  Atlantic: "Atlántico",
+  Indian: "Índico",
+  Australia: "Australia",
+  Antarctica: "Antártida",
+  Arctic: "Ártico"
+};
+
+/* Human subtitle instead of the raw IANA id ("Europe/Oslo" reads like a file
+   path). "Asia/Makassar" + label "Bali" -> "Makassar · Asia"; when the zone
+   city just repeats the label ("Oslo") only the region shows -> "Europa". */
+function zoneSubtitle(timeZone, label) {
+  const tz = String(timeZone);
+  if (!tz.includes("/")) return tz; // e.g. "UTC"
+  const city = prettifyZone(tz);
+  const region = ZONE_REGION_ES[tz.split("/")[0]] || tz.split("/")[0];
+  if (label && normSearch(city) === normSearch(label)) return region;
+  return `${city} · ${region}`;
+}

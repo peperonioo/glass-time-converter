@@ -1,6 +1,6 @@
 /* Glass Time — service worker (offline app shell).
    Bump CACHE on every release so clients pick up the new bundle. */
-const CACHE = "glass-time-v0.12.0";
+const CACHE = "glass-time-v0.12.1";
 const ASSETS = [
   "./",
   "./index.html",

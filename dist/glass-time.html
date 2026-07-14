@@ -2095,6 +2095,32 @@
       return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     }
 
+    /* IANA region prefixes, humanized in Spanish. */
+    const ZONE_REGION_ES = {
+      Europe: "Europa",
+      America: "América",
+      Asia: "Asia",
+      Africa: "África",
+      Pacific: "Pacífico",
+      Atlantic: "Atlántico",
+      Indian: "Índico",
+      Australia: "Australia",
+      Antarctica: "Antártida",
+      Arctic: "Ártico"
+    };
+
+    /* Human subtitle instead of the raw IANA id ("Europe/Oslo" reads like a file
+       path). "Asia/Makassar" + label "Bali" -> "Makassar · Asia"; when the zone
+       city just repeats the label ("Oslo") only the region shows -> "Europa". */
+    function zoneSubtitle(timeZone, label) {
+      const tz = String(timeZone);
+      if (!tz.includes("/")) return tz; // e.g. "UTC"
+      const city = prettifyZone(tz);
+      const region = ZONE_REGION_ES[tz.split("/")[0]] || tz.split("/")[0];
+      if (label && normSearch(city) === normSearch(label)) return region;
+      return `${city} · ${region}`;
+    }
+
     /* ===== core/date-utils.js ===== */
 
     /* Glass Time — core/date-utils
@@ -2783,7 +2809,7 @@
                   <div class="offset">${offset}</div>
                 </div>
                 <div class="current-time">Ahora · ${fmtDisplayTime(current.hour, current.minute)}</div>
-                <div class="zone-name">${escapeHTML(zone.timeZone)}</div>
+                <div class="zone-name">${escapeHTML(zoneSubtitle(zone.timeZone, zone.label))}</div>
               </div>
               <div class="city-actions">
                 ${index > 0 ? `<button class="mini-btn make-base" title="Hacer base">⌖</button>` : ""}
@@ -3235,7 +3261,7 @@
           <button class="zone-option" data-label="${escapeHTML(label)}" data-timezone="${escapeHTML(timeZone)}">
             <span>
               <strong>${escapeHTML(label)}</strong>
-              <span>${escapeHTML(timeZone)} · Ahora ${fmtDisplayTime(p.hour, p.minute)}</span>
+              <span>${escapeHTML(zoneSubtitle(timeZone, label))} · Ahora ${fmtDisplayTime(p.hour, p.minute)}</span>
             </span>
             <em>${offsetText(now, timeZone)}</em>
           </button>
@@ -3458,7 +3484,7 @@
 
         x.fillStyle = "rgba(255,255,255,.55)";
         x.font = "500 28px -apple-system, Inter, Segoe UI, sans-serif";
-        x.fillText(zone.timeZone, pad + 84, y + 40);
+        x.fillText(zoneSubtitle(zone.timeZone, zone.label), pad + 84, y + 40);
 
         const range = `${fmtDisplayTime(s.hour, s.minute)}–${fmtDisplayTime(e.hour, e.minute)}`;
         x.fillStyle = "rgba(255,255,255,.92)";

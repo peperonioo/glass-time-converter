@@ -133,7 +133,7 @@ function renderRows() {
               <div class="offset">${offset}</div>
             </div>
             <div class="current-time">Ahora · ${fmtDisplayTime(current.hour, current.minute)}</div>
-            <div class="zone-name">${escapeHTML(zone.timeZone)}</div>
+            <div class="zone-name">${escapeHTML(zoneSubtitle(zone.timeZone, zone.label))}</div>
           </div>
           <div class="city-actions">
             ${index > 0 ? `<button class="mini-btn make-base" title="Hacer base">⌖</button>` : ""}

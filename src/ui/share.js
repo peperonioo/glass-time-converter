@@ -126,7 +126,7 @@ function buildShareCanvas() {
 
     x.fillStyle = "rgba(255,255,255,.55)";
     x.font = "500 28px -apple-system, Inter, Segoe UI, sans-serif";
-    x.fillText(zone.timeZone, pad + 84, y + 40);
+    x.fillText(zoneSubtitle(zone.timeZone, zone.label), pad + 84, y + 40);
 
     const range = `${fmtDisplayTime(s.hour, s.minute)}–${fmtDisplayTime(e.hour, e.minute)}`;
     x.fillStyle = "rgba(255,255,255,.92)";

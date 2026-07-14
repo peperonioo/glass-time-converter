@@ -2,6 +2,15 @@
 
 All notable changes to Glass Time.
 
+## [0.12.1] — 2026-07-14
+
+### Changed — human zone names
+
+- The raw IANA id ("Europe/Oslo" — reads like a file path) is gone from the UI.
+  City rows, the picker and the share card now show a human Spanish subtitle:
+  "Makassar · Asia", or just the region ("Europa") when the zone city would
+  repeat the card's name. Search still matches the IANA text. +4 tests (43).
+
 ## [0.12.0] — 2026-07-14
 
 Audit follow-up: every technical-debt item + the full design P1–P5 list.

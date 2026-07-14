@@ -47,7 +47,7 @@ function zoneOptionHTML(now) {
       <button class="zone-option" data-label="${escapeHTML(label)}" data-timezone="${escapeHTML(timeZone)}">
         <span>
           <strong>${escapeHTML(label)}</strong>
-          <span>${escapeHTML(timeZone)} · Ahora ${fmtDisplayTime(p.hour, p.minute)}</span>
+          <span>${escapeHTML(zoneSubtitle(timeZone, label))} · Ahora ${fmtDisplayTime(p.hour, p.minute)}</span>
         </span>
         <em>${offsetText(now, timeZone)}</em>
       </button>

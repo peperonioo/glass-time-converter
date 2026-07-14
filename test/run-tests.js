@@ -118,6 +118,10 @@ eq("canonical form is a no-op", canonicalizeSelection(), 0);
 eq("normSearch strips accents", normSearch("Bogotá"), "bogota");
 eq("labelForZone curated", labelForZone("Europe/Madrid"), "Madrid");
 eq("prettifyZone", prettifyZone("America/Argentina/Buenos_Aires"), "Buenos Aires");
+eq("zoneSubtitle city+region", zoneSubtitle("Asia/Makassar", "Bali"), "Makassar · Asia");
+eq("zoneSubtitle collapses repeated city", zoneSubtitle("Europe/Oslo", "Oslo"), "Europa");
+eq("zoneSubtitle nested zone", zoneSubtitle("America/Argentina/Buenos_Aires", "BA"), "Buenos Aires · América");
+eq("zoneSubtitle UTC passthrough", zoneSubtitle("UTC", "UTC"), "UTC");
 ok("curated zones all have coords", ZONE_LIBRARY.every(z => typeof z[2] === "number" && typeof z[3] === "number"));
 
 // ---------- result ----------
